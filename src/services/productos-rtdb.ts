@@ -1,14 +1,14 @@
 import {
-  child,
-  get,
-  off,
-  onValue,
-  push,
-  ref,
-  remove,
-  runTransaction,
-  set,
-  update,
+    child,
+    get,
+    off,
+    onValue,
+    push,
+    ref,
+    remove,
+    runTransaction,
+    set,
+    update,
 } from "firebase/database";
 import { rtdb } from "./firebase-rtdb";
 
@@ -89,4 +89,17 @@ export async function descontarStock(
     if (current === null) return 0;
     return (current as number) - quantity;
   });
+}
+
+// Suscripción en tiempo real a productos activos
+export function subscribeToProductosActivos(
+  callback: (productos: Producto[]) => void,
+): () => void {
+  const unsubscribe = onValue(rootRef, (snap) => {
+    const productos = snapToArray(snap)
+      .filter((p) => p.active)
+      .sort((a, b) => b.createdAt?.localeCompare(a.createdAt ?? "") ?? 0);
+    callback(productos);
+  });
+  return () => off(rootRef, "value", unsubscribe);
 }

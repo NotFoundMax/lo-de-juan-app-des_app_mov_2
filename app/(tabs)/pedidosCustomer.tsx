@@ -11,8 +11,8 @@ import PageHeader from "@/src/components/PageHeader";
 import { useAuth } from "@/src/contexts/AuthContext";
 import { sucursales } from "@/src/data/sucursales";
 import {
-    getOrdersByCustomerId,
     Order,
+    subscribeToOrdersByCustomer,
     updateOrder,
 } from "@/src/services/pedidos-rtdb";
 import { useEffect, useState } from "react";
@@ -171,20 +171,6 @@ export default function PedidosCustomerScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Carga los pedidos del cliente
-  const load = async () => {
-    if (!user?.uid) return;
-    try {
-      const data = await getOrdersByCustomerId(user.uid);
-      setOrders(data);
-    } catch (e) {
-      console.error("Error loading customers orders:", e);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
   // Cancela un pedido pendiente
   const handleCancel = (orderId: string) => {
     const doCancel = async () => {
@@ -192,7 +178,6 @@ export default function PedidosCustomerScreen() {
         await updateOrder(orderId, {
           status: "cancelled",
         });
-        load();
       } catch {
         Alert.alert("Error", "No se pudo cancelar el pedido.");
       }
@@ -210,8 +195,16 @@ export default function PedidosCustomerScreen() {
     }
   };
 
+  // Suscripción en tiempo real a los pedidos del cliente
   useEffect(() => {
-    load();
+    if (!user?.uid) return;
+    setLoading(true);
+    const unsubscribe = subscribeToOrdersByCustomer(user.uid, (data) => {
+      setOrders(data);
+      setLoading(false);
+      setRefreshing(false);
+    });
+    return unsubscribe;
   }, [user?.uid]);
 
   if (loading) {

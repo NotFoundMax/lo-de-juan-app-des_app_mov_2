@@ -1,25 +1,29 @@
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
-  FlatList,
-  Platform,
-  RefreshControl,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    FlatList,
+    Platform,
+    RefreshControl,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import LoadingSpinner from "@/src/components/LoadingSpinner";
 import {
-  DELIVERY_FEE,
-  PAYMENT_LABELS,
-  STATUS_CONFIG,
+    DELIVERY_FEE,
+    PAYMENT_LABELS,
+    STATUS_CONFIG,
 } from "@/src/components/orders/shared";
 import { useAuth } from "@/src/contexts/AuthContext";
 import { sucursales } from "@/src/data/sucursales";
-import { getOrders, Order, updateOrder } from "@/src/services/pedidos-rtdb";
+import {
+    Order,
+    subscribeToOrders,
+    updateOrder,
+} from "@/src/services/pedidos-rtdb";
 
 type FilterStatus = "all" | Order["status"];
 
@@ -32,7 +36,7 @@ const FILTERS: { key: FilterStatus; label: string }[] = [
 ];
 
 const STATUS_ACTIONS: {
-  [key: string]: { next: string; label: string; color: string }
+  [key: string]: { next: string; label: string; color: string };
 } = {
   pending: { next: "preparing", label: "Aceptar", color: "#1976d2" },
   preparing: { next: "ready", label: "Listo", color: "#43A047" },
@@ -58,8 +62,7 @@ function MiniStepper({
           className="h-0.5 mx-0.5"
           style={{
             width: 10,
-            backgroundColor:
-              isCompleted || isCurrent ? "#22c55e" : "#e5e7eb",
+            backgroundColor: isCompleted || isCurrent ? "#22c55e" : "#e5e7eb",
           }}
         />,
       );
@@ -299,7 +302,12 @@ function AdminOrderCard({
               className="rounded-xl py-3 items-center mt-3 active:opacity-70"
               style={{ backgroundColor: action.color }}
             >
-              <Text className="text-body-bold text-white" style={{ fontFamily: "monospace" }}>{action.label}</Text>
+              <Text
+                className="text-body-bold text-white"
+                style={{ fontFamily: "monospace" }}
+              >
+                {action.label}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -401,7 +409,12 @@ function StatusStamp({
       }}
     >
       <Text
-        style={{ fontFamily: "monospace", color, fontSize: 11, fontWeight: "700" }}
+        style={{
+          fontFamily: "monospace",
+          color,
+          fontSize: 11,
+          fontWeight: "700",
+        }}
       >
         {label.toUpperCase()}
       </Text>
@@ -471,22 +484,73 @@ function ComandaCard({
         }}
       >
         <View style={{ flex: 1, marginRight: 12 }}>
-          <Text style={{ fontFamily: "monospace", color: "#000", fontSize: 20, fontWeight: "700", marginBottom: 4 }}>
+          <Text
+            style={{
+              fontFamily: "monospace",
+              color: "#000",
+              fontSize: 20,
+              fontWeight: "700",
+              marginBottom: 4,
+            }}
+          >
             #{ticketNum}
           </Text>
-          <Text style={{ fontFamily: "monospace", color: "#000", fontSize: 14, fontWeight: "700" }}>
+          <Text
+            style={{
+              fontFamily: "monospace",
+              color: "#000",
+              fontSize: 14,
+              fontWeight: "700",
+            }}
+          >
             {order.customerName || "Cliente"}
           </Text>
-          <View style={{ flexDirection: "row", marginTop: 2, alignItems: "center", flexWrap: "wrap" }}>
-            <Text style={{ fontFamily: "monospace", color: "#666", fontSize: 11, backgroundColor: "#f0f0f0", paddingHorizontal: 4, paddingVertical: 1, marginRight: 4, marginBottom: 2 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              marginTop: 2,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "monospace",
+                color: "#666",
+                fontSize: 11,
+                backgroundColor: "#f0f0f0",
+                paddingHorizontal: 4,
+                paddingVertical: 1,
+                marginRight: 4,
+                marginBottom: 2,
+              }}
+            >
               {deliveryLabel}
             </Text>
             {sucursal && (
-              <Text style={{ fontFamily: "monospace", color: "#1976d2", fontSize: 11, backgroundColor: "#e3f2fd", paddingHorizontal: 4, paddingVertical: 1, marginRight: 4, marginBottom: 2 }}>
+              <Text
+                style={{
+                  fontFamily: "monospace",
+                  color: "#1976d2",
+                  fontSize: 11,
+                  backgroundColor: "#e3f2fd",
+                  paddingHorizontal: 4,
+                  paddingVertical: 1,
+                  marginRight: 4,
+                  marginBottom: 2,
+                }}
+              >
                 {sucursal.name}
               </Text>
             )}
-            <Text style={{ fontFamily: "monospace", color: "#999", fontSize: 11, marginBottom: 2 }}>
+            <Text
+              style={{
+                fontFamily: "monospace",
+                color: "#999",
+                fontSize: 11,
+                marginBottom: 2,
+              }}
+            >
               {formatTime(order.createdAt)}
             </Text>
           </View>
@@ -498,11 +562,21 @@ function ComandaCard({
             bg={status.bg}
           />
           <Text
-            style={{ fontFamily: "monospace", color: urgencyColor, fontSize: 20, fontWeight: "700", marginTop: 2 }}
+            style={{
+              fontFamily: "monospace",
+              color: urgencyColor,
+              fontSize: 20,
+              fontWeight: "700",
+              marginTop: 2,
+            }}
           >
             ⏱ {elapsed}
           </Text>
-          <Text style={{ fontFamily: "monospace", color: "#888", fontSize: 10 }}>TIEMPO</Text>
+          <Text
+            style={{ fontFamily: "monospace", color: "#888", fontSize: 10 }}
+          >
+            TIEMPO
+          </Text>
         </View>
       </View>
 
@@ -636,23 +710,9 @@ export default function PedidosAdminScreen() {
     setExpandedOrderId((prev) => (prev === orderId ? null : orderId));
   };
 
-  // Carga los pedidos del servidor
-  const load = async () => {
-    try {
-      const data = await getOrders();
-      if (isAdmin) {
-        setOrders(data);
-      } else {
-        const today = new Date().toISOString().slice(0, 10);
-        const todayOrders = data.filter((o) => o.createdAt?.startsWith(today));
-        setOrders(todayOrders);
-      }
-    } catch (e) {
-      console.error("Error loading orders:", e);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+  // Carga los pedidos del servidor (solo para pull-to-refresh visual)
+  const load = () => {
+    setRefreshing(false);
   };
 
   // Actualiza el estado de un pedido
@@ -665,25 +725,26 @@ export default function PedidosAdminScreen() {
         status: newStatus,
         ...(newStatus === "ready" ? { readyAt: new Date().toISOString() } : {}),
       });
-      load();
     } catch {
       Alert.alert("Error", "No se pudo actualizar el estado.");
     }
   };
 
-  // Auto-refresca cada 30 segundos
+  // Suscripción en tiempo real a pedidos
   useEffect(() => {
-    load();
-  }, [isAdmin]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!loading) {
-        load();
+    setLoading(true);
+    const unsubscribe = subscribeToOrders((data) => {
+      if (isAdmin) {
+        setOrders(data);
+      } else {
+        const today = new Date().toISOString().slice(0, 10);
+        setOrders(data.filter((o) => o.createdAt?.startsWith(today)));
       }
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [loading]);
+      setLoading(false);
+      setRefreshing(false);
+    });
+    return unsubscribe;
+  }, [isAdmin]);
 
   const filteredOrders = orders
     .filter((o) => filter === "all" || o.status === filter)
@@ -718,7 +779,10 @@ export default function PedidosAdminScreen() {
   return (
     <View className="flex-1 bg-white">
       {/* Header con buscador integrado */}
-      <View className="bg-primary pb-4 px-6" style={{ paddingTop: insets.top + 16 }}>
+      <View
+        className="bg-primary pb-4 px-6"
+        style={{ paddingTop: insets.top + 16 }}
+      >
         <View className="flex-row justify-between items-center">
           <View className="flex-1">
             <Text className="text-h2 text-text-inverse">

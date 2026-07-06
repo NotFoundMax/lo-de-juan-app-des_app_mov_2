@@ -2,7 +2,10 @@ import LoadingSpinner from "@/src/components/LoadingSpinner";
 import { useAuth } from "@/src/contexts/AuthContext";
 import { useCarrito } from "@/src/contexts/CarritoContext";
 import { Categoria, getCategorias } from "@/src/services/categorias-rtdb";
-import { getProductosActivos, Producto } from "@/src/services/productos-rtdb";
+import {
+    Producto,
+    subscribeToProductosActivos,
+} from "@/src/services/productos-rtdb";
 import { Image } from "expo-image";
 import { Redirect, router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -114,25 +117,19 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Carga los productos y categorías
-  const load = async () => {
-    try {
-      const [prods, cats] = await Promise.all([
-        getProductosActivos(),
-        getCategorias(),
-      ]);
+  // Carga las categorías una sola vez (sin tiempo real)
+  useEffect(() => {
+    getCategorias().then(setCategorias).catch(console.error);
+  }, []);
+
+  // Suscripción en tiempo real a productos activos
+  useEffect(() => {
+    const unsubscribe = subscribeToProductosActivos((prods) => {
       setProductos(prods);
-      setCategorias(cats);
-    } catch (e) {
-      console.error("Error loading catalog:", e);
-    } finally {
       setLoading(false);
       setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
+    });
+    return unsubscribe;
   }, []);
 
   if (loading) {
@@ -161,7 +158,10 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-white">
-      <View className="bg-primary pb-6 px-6" style={{ paddingTop: insets.top + 24 }}>
+      <View
+        className="bg-primary pb-6 px-6"
+        style={{ paddingTop: insets.top + 24 }}
+      >
         <View className="flex-row justify-between items-center">
           <View>
             <Text className="text-h2 text-text-inverse">Lo de Juan</Text>
@@ -193,10 +193,7 @@ export default function HomeScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              load();
-            }}
+            onRefresh={() => setRefreshing(true)}
           />
         }
         contentContainerStyle={{ padding: 16 }}

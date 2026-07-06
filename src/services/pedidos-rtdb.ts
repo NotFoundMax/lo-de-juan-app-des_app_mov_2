@@ -1,12 +1,12 @@
 import {
-  child,
-  get,
-  off,
-  onValue,
-  push,
-  ref,
-  set,
-  update,
+    child,
+    get,
+    off,
+    onValue,
+    push,
+    ref,
+    set,
+    update,
 } from "firebase/database";
 import { rtdb } from "./firebase-rtdb";
 
@@ -107,4 +107,33 @@ export async function updateOrder(
   data: Partial<Order>,
 ): Promise<void> {
   await update(child(rootRef, id), data);
+}
+
+// Suscripción en tiempo real a todos los pedidos
+export function subscribeToOrders(
+  callback: (orders: Order[]) => void,
+): () => void {
+  const unsubscribe = onValue(rootRef, (snap) => {
+    callback(
+      snapToArray(snap).sort(
+        (a, b) => b.createdAt?.localeCompare(a.createdAt ?? "") ?? 0,
+      ),
+    );
+  });
+  return () => off(rootRef, "value", unsubscribe);
+}
+
+// Suscripción en tiempo real a los pedidos de un cliente
+export function subscribeToOrdersByCustomer(
+  customerId: string,
+  callback: (orders: Order[]) => void,
+): () => void {
+  const unsubscribe = onValue(rootRef, (snap) => {
+    callback(
+      snapToArray(snap)
+        .filter((o) => o.customerId === customerId)
+        .sort((a, b) => b.createdAt?.localeCompare(a.createdAt ?? "") ?? 0),
+    );
+  });
+  return () => off(rootRef, "value", unsubscribe);
 }

@@ -1,15 +1,57 @@
 import {
-  createUserWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signOut as firebaseSignOut,
+    GoogleAuthProvider,
+    signInWithCredential,
+    signInWithEmailAndPassword,
+    signInWithPopup,
 } from "firebase/auth";
 import { get, ref, set } from "firebase/database";
-import { ROLES, Role } from "../constants/roles";
+import { Role, ROLES } from "../constants/roles";
 import { auth, rtdb } from "./firebase-rtdb";
 
 // Autentica con email y contraseña
 export async function signIn(email: string, password: string) {
   return signInWithEmailAndPassword(auth, email, password);
+}
+
+// Autentica con Google en web via redirect (funciona con Firebase sin restricción de dominio)
+export async function signInWithGoogleWeb() {
+  const provider = new GoogleAuthProvider();
+  const userCredential = await signInWithPopup(auth, provider);
+  const user = userCredential.user;
+
+  const userRef = ref(rtdb, `users/${user.uid}`);
+  const snap = await get(userRef);
+  if (!snap.exists()) {
+    await set(userRef, {
+      name: user.displayName ?? user.email?.split("@")[0] ?? "Usuario",
+      email: user.email,
+      role: ROLES.CUSTOMER,
+      createdAt: new Date().toISOString(),
+    });
+  }
+  return userCredential;
+}
+
+// Autentica con credencial de Google (id_token desde expo-auth-session)
+export async function signInWithGoogle(idToken: string) {
+  const credential = GoogleAuthProvider.credential(idToken);
+  const userCredential = await signInWithCredential(auth, credential);
+  const user = userCredential.user;
+
+  // Crear perfil en RTDB si no existe
+  const userRef = ref(rtdb, `users/${user.uid}`);
+  const snap = await get(userRef);
+  if (!snap.exists()) {
+    await set(userRef, {
+      name: user.displayName ?? user.email?.split("@")[0] ?? "Usuario",
+      email: user.email,
+      role: ROLES.CUSTOMER,
+      createdAt: new Date().toISOString(),
+    });
+  }
+  return userCredential;
 }
 
 // Registra usuario en Auth y RTDB
