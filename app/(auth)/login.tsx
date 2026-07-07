@@ -1,7 +1,7 @@
 import {
-  signIn,
-  signInWithGoogle,
-  signInWithGoogleWeb,
+    signIn,
+    signInWithGoogle,
+    signInWithGoogleWeb,
 } from "@/src/services/auth-rtdb";
 import { showError } from "@/src/utils/errorHandler";
 import * as Google from "expo-auth-session/providers/google";
@@ -9,13 +9,13 @@ import { Link, router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useRef, useState } from "react";
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -31,14 +31,16 @@ export default function LoginScreen() {
   const passwordRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
 
-  // useIdTokenAuthRequest — preparado para cuando se active en mobile con build nativo
+  // useIdTokenAuthRequest — para mobile con build nativo usa androidClientId
   const [_request, _response, _promptAsync] = Google.useIdTokenAuthRequest({
     clientId:
       "747406714275-3fhnk9uqmifsf9jtadlti6jm2f9ikg0r.apps.googleusercontent.com",
+    androidClientId:
+      "63861347817-vbbhgapombfqn1dnd2hdguqtbkseik4p.apps.googleusercontent.com",
     redirectUri: "https://auth.expo.io/@notfoundmax/lo-de-juan",
   });
 
-  // Procesa la respuesta de Google OAuth (preparado para mobile con build nativo)
+  // Procesa la respuesta de Google OAuth (mobile con build nativo)
   useEffect(() => {
     if (!_response) return;
     if (_response.type === "success") {
@@ -71,11 +73,8 @@ export default function LoginScreen() {
         setGoogleLoading(false);
       }
     } else {
-      // En Expo Go el flujo de redirección no está soportado
-      Alert.alert(
-        "Google Sign-In",
-        "El inicio de sesión con Google está disponible en la versión web o en el build nativo de la app.",
-      );
+      // En Android/iOS con build nativo usa expo-auth-session
+      _promptAsync();
     }
   };
 
