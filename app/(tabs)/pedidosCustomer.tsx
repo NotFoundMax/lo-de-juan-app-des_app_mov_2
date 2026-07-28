@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import LoadingSpinner from "@/src/components/LoadingSpinner";
 import OrderStepper from "@/src/components/orders/OrderStepper";
 import {
@@ -158,6 +159,22 @@ function OrderCard({
               <Text className="text-body-bold text-error">Cancelar pedido</Text>
             </TouchableOpacity>
           )}
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/chat",
+                params: {
+                  orderId: order.id,
+                  orderName: order.ticketNumber || order.id.slice(0, 8).toUpperCase(),
+                },
+              })
+            }
+            className="bg-primary rounded-xl py-3 items-center mt-3 active:opacity-70"
+          >
+            <Text className="text-body-bold text-text-inverse">
+              Abrir chat
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
     </TouchableOpacity>

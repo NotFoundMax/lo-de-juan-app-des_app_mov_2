@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { router } from "expo-router";
 import {
     Alert,
     FlatList,
@@ -310,6 +311,21 @@ function AdminOrderCard({
               </Text>
             </TouchableOpacity>
           )}
+
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/chat",
+                params: {
+                  orderId: order.id,
+                  orderName: order.ticketNumber || order.id.slice(0, 8).toUpperCase(),
+                },
+              })
+            }
+            className="rounded-xl py-3 items-center mt-2 border border-primary active:opacity-70"
+          >
+            <Text className="text-body-bold text-primary">Abrir chat</Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -660,6 +676,30 @@ function ComandaCard({
                 }}
               >
                 {action.label.toUpperCase()}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() =>
+                router.push({
+                  pathname: "/chat",
+                  params: {
+                    orderId: order.id,
+                    orderName: order.ticketNumber || order.id.slice(0, 8).toUpperCase(),
+                  },
+                })
+              }
+              style={{
+                borderRadius: 6,
+                paddingVertical: 12,
+                alignItems: "center",
+                marginTop: 8,
+                borderWidth: 1.5,
+                borderColor: "#f84d3f",
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={{ color: "#f84d3f", fontWeight: "700", fontSize: 14 }}>
+                Abrir chat
               </Text>
             </TouchableOpacity>
           </View>
