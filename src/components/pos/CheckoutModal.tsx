@@ -22,6 +22,7 @@ interface Props {
   tableNumber: string;
   onTableNumberChange: (num: string) => void;
   onConfirm: () => void;
+  onConfirmPedido: () => void;
   onClose: () => void;
   processing: boolean;
 }
@@ -45,6 +46,7 @@ export default function CheckoutModal({
   tableNumber,
   onTableNumberChange,
   onConfirm,
+  onConfirmPedido,
   onClose,
   processing,
 }: Props) {
@@ -176,20 +178,49 @@ export default function CheckoutModal({
               </Text>
             </View>
 
-            <TouchableOpacity
-              onPress={onConfirm}
-              disabled={processing || nameRequired}
-              className="bg-primary py-3 rounded-xl items-center"
-              style={{ opacity: processing || nameRequired ? 0.5 : 1 }}
-            >
-              {processing ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text className="text-body-bold text-white">
-                  Confirmar y cobrar
-                </Text>
-              )}
-            </TouchableOpacity>
+            {deliveryMode === "mesa" ? (
+              <View className="flex-row gap-2">
+                <TouchableOpacity
+                  onPress={onConfirmPedido}
+                  disabled={processing}
+                  className="flex-1 border border-primary py-3 rounded-xl items-center"
+                  style={{ opacity: processing ? 0.5 : 1 }}
+                >
+                  <Text className="text-body-bold text-primary">
+                    Confirmar pedido
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={onConfirm}
+                  disabled={processing}
+                  className="flex-1 bg-primary py-3 rounded-xl items-center"
+                  style={{ opacity: processing ? 0.5 : 1 }}
+                >
+                  {processing ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text className="text-body-bold text-white">
+                      Confirmar y cobrar
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={onConfirm}
+                disabled={processing || nameRequired}
+                className="bg-primary py-3 rounded-xl items-center"
+                style={{ opacity: processing || nameRequired ? 0.5 : 1 }}
+              >
+                {processing ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-body-bold text-white">
+                    Confirmar y cobrar
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>

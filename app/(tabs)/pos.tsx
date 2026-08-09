@@ -137,7 +137,8 @@ export default function PosScreen() {
   };
 
   // Procesa el cobro del POS
-  const handleCheckout = async () => {
+  // Procesa el cobro del POS. charge=false crea el pedido sin cobrar (mesa)
+  const handleCheckout = async (charge: boolean) => {
     if (cart.length === 0) return;
 
     // Mostrador: el nombre del cliente es obligatorio
@@ -174,7 +175,7 @@ export default function PosScreen() {
         ...(deliveryMode === "mesa" && tableNumber.trim()
           ? { tableNumber: tableNumber.trim() }
           : {}),
-        paidAt: new Date().toISOString(),
+        paidAt: charge ? new Date().toISOString() : undefined,
         createdAt: new Date().toISOString(),
       });
 
@@ -191,7 +192,9 @@ export default function PosScreen() {
       setDeliveryMode(null);
       setTableNumber("");
 
-      const successMessage = `Pedido creado con éxito por S/. ${total.toFixed(2)}`;
+      const successMessage = charge
+        ? `Pedido creado y cobrado por S/. ${total.toFixed(2)}`
+        : "Pedido registrado sin cobro. Se cobrará al cierre de la mesa.";
 
       if (Platform.OS === "web") {
         window.alert(`Pedido realizado\n\n${successMessage}`);
@@ -293,7 +296,8 @@ export default function PosScreen() {
         onDeliveryModeChange={setDeliveryMode}
         tableNumber={tableNumber}
         onTableNumberChange={setTableNumber}
-        onConfirm={handleCheckout}
+        onConfirm={() => handleCheckout(true)}
+        onConfirmPedido={() => handleCheckout(false)}
         onClose={() => setShowCheckout(false)}
         processing={processing}
       />
