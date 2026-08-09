@@ -770,6 +770,53 @@ export default function PedidosAdminScreen() {
     }
   };
 
+  // Confirma el pago Yape de un pedido y lo pasa a la cola de preparación
+  const handleYapeConfirm = async (orderId: string) => {
+    const doConfirm = async () => {
+      try {
+        await updateOrder(orderId, {
+          paymentStatus: "confirmed",
+          paidAt: new Date().toISOString(),
+        });
+      } catch {
+        Alert.alert("Error", "No se pudo confirmar el pago.");
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm("¿Confirmar el pago con Yape de este pedido?")) {
+        doConfirm();
+      }
+    } else {
+      Alert.alert("Confirmar pago", "¿Confirmar el pago con Yape?", [
+        { text: "No", style: "cancel" },
+        { text: "Sí, confirmar", onPress: doConfirm },
+      ]);
+    }
+  };
+
+  // Rechaza la solicitud de pago Yape
+  const handleYapeReject = async (orderId: string) => {
+    const doReject = async () => {
+      try {
+        await updateOrder(orderId, { status: "cancelled" });
+      } catch {
+        Alert.alert("Error", "No se pudo rechazar el pedido.");
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm("¿Rechazar este pago Yape?")) {
+        doReject();
+      }
+    } else {
+      Alert.alert("Rechazar pago", "¿Rechazar este pago Yape?", [
+        { text: "No", style: "cancel" },
+        { text: "Sí, rechazar", style: "destructive", onPress: doReject },
+      ]);
+    }
+  };
+
   // Suscripción en tiempo real a pedidos
   useEffect(() => {
     setLoading(true);
@@ -786,7 +833,17 @@ export default function PedidosAdminScreen() {
     return unsubscribe;
   }, [isAdmin]);
 
-  const filteredOrders = orders
+  // Solicitudes de pago Yape esperando confirmación
+  const yapePending = orders.filter(
+    (o) => o.paymentStatus === "pending" && o.status !== "cancelled",
+  );
+
+  // Pedidos ya pagados (cola de trabajo normal)
+  const queueOrders = orders.filter(
+    (o) => !(o.paymentStatus === "pending" && o.status !== "cancelled"),
+  );
+
+  const filteredOrders = queueOrders
     .filter((o) => filter === "all" || o.status === filter)
     .filter((o) => {
       if (!search.trim()) return true;
@@ -799,11 +856,11 @@ export default function PedidosAdminScreen() {
     });
 
   const filterCounts = {
-    all: orders.length,
-    pending: orders.filter((o) => o.status === "pending").length,
-    preparing: orders.filter((o) => o.status === "preparing").length,
-    ready: orders.filter((o) => o.status === "ready").length,
-    delivered: orders.filter((o) => o.status === "delivered").length,
+    all: queueOrders.length,
+    pending: queueOrders.filter((o) => o.status === "pending").length,
+    preparing: queueOrders.filter((o) => o.status === "preparing").length,
+    ready: queueOrders.filter((o) => o.status === "ready").length,
+    delivered: queueOrders.filter((o) => o.status === "delivered").length,
   };
 
   const todayLabel = new Date().toLocaleDateString("es-PE", {
@@ -890,6 +947,57 @@ export default function PedidosAdminScreen() {
           }}
         />
       </View>
+
+      {/* Solicitudes de pago Yape esperando confirmación */}
+      {isAdmin && yapePending.length > 0 && (
+        <View className="px-4 pt-3 pb-1 bg-white">
+          <Text className="text-label text-text-primary mb-2">
+            💛 Solicitudes de Yape ({yapePending.length})
+          </Text>
+          {yapePending.map((o) => (
+            <View
+              key={o.id}
+              className="bg-warning-light rounded-xl p-4 mb-3 border"
+              style={{ borderColor: "#ffb80455" }}
+            >
+              <View className="flex-row justify-between items-start mb-1">
+                <Text className="text-body-bold text-text-primary flex-1">
+                  {o.customerName || "Cliente"}
+                </Text>
+                <Text className="text-h3 text-primary">
+                  S/.{o.total.toFixed(2)}
+                </Text>
+              </View>
+              <Text className="text-caption text-text-muted mb-1">
+                Pagador: {o.yapePayerName || "—"}
+              </Text>
+              <Text className="text-caption text-text-muted">
+                {o.deliveryMode === "delivery"
+                  ? "🚚 Delivery"
+                  : o.deliveryMode === "recoger"
+                    ? "🏪 Recoger en tienda"
+                    : `🪑 Mesa ${o.tableNumber || ""}`}
+              </Text>
+              <View className="flex-row gap-2 mt-3">
+                <TouchableOpacity
+                  onPress={() => handleYapeConfirm(o.id)}
+                  className="flex-1 bg-success py-2.5 rounded-xl items-center active:opacity-70"
+                >
+                  <Text className="text-body-bold text-white">
+                    Confirmar pago
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleYapeReject(o.id)}
+                  className="flex-1 bg-error py-2.5 rounded-xl items-center active:opacity-70"
+                >
+                  <Text className="text-body-bold text-white">Rechazar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
 
       <FlatList
         data={filteredOrders}

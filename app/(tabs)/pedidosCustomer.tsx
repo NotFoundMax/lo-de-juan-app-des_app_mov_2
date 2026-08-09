@@ -37,6 +37,10 @@ function OrderCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const status = STATUS_CONFIG[order.status];
+  const isYapePending = order.paymentStatus === "pending";
+  const statusChip = isYapePending
+    ? { label: "Pendiente de confirmación", bg: "#fff8e1", text: "#e0a003" }
+    : status;
   const sucursal =
     order.deliveryMode === "recoger" && order.sucursalId
       ? (sucursales.find((s) => s.id === order.sucursalId) ?? null)
@@ -93,10 +97,10 @@ function OrderCard({
         </View>
         <View
           className="px-3 py-1 rounded-full"
-          style={{ backgroundColor: status.bg }}
+          style={{ backgroundColor: statusChip.bg }}
         >
-          <Text className="text-small font-bold" style={{ color: status.text }}>
-            {status.label}
+          <Text className="text-small font-bold" style={{ color: statusChip.text }}>
+            {statusChip.label}
           </Text>
         </View>
       </View>

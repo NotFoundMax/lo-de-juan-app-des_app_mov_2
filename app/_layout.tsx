@@ -30,6 +30,10 @@ export default function RootLayout() {
               name="pago-exitoso"
               options={{ headerShown: false }}
             />
+            <Stack.Screen
+              name="pago-pendiente"
+              options={{ headerShown: false }}
+            />
             <Stack.Screen name="chat" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="auto" />

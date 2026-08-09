@@ -14,6 +14,7 @@ import {
     Image,
     Platform,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -27,6 +28,7 @@ export default function YapeScreen() {
   const { pending, clearPending } = useDelivery();
   const [processing, setProcessing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [payerName, setPayerName] = useState("");
   const lastTap = useRef<number>(0);
 
   const deliveryFee = pending?.deliveryMode === "delivery" ? 5 : 0;
@@ -72,12 +74,19 @@ export default function YapeScreen() {
       Alert.alert("Error", "Faltan datos de entrega. Vuelve al carrito.");
       return;
     }
+    if (!payerName.trim()) {
+      Alert.alert(
+        "Ingresa tu nombre",
+        "Escribe tu nombre y apellido para que el local pueda confirmar tu pago.",
+      );
+      return;
+    }
 
     setProcessing(true);
     await new Promise((r) => setTimeout(r, 1500));
 
     try {
-      await createOrder({
+      const orderId = await createOrder({
         customerId: user?.uid ?? null,
         customerName: user?.email?.split("@")[0] ?? "Cliente",
         items: items.map((i) => ({
@@ -98,7 +107,8 @@ export default function YapeScreen() {
         deliveryLng: pending.lng || undefined,
         deliveryPhone: pending.phone || undefined,
         deliveryNotes: pending.notes || undefined,
-        paidAt: new Date().toISOString(),
+        paymentStatus: "pending",
+        yapePayerName: payerName.trim(),
         createdAt: new Date().toISOString(),
       });
 
@@ -115,7 +125,7 @@ export default function YapeScreen() {
 
       clearCart();
       clearPending();
-      router.replace("/pago-exitoso");
+      router.replace({ pathname: "/pago-pendiente", params: { orderId } });
     } catch (e) {
       console.error("Error creando pedido:", e);
       Alert.alert("Error", "No se pudo procesar el pago. Intenta de nuevo.");
@@ -177,6 +187,23 @@ export default function YapeScreen() {
               <Text className="text-body text-text-primary flex-1">{step}</Text>
             </View>
           ))}
+        </View>
+
+        <View className="w-full mb-4">
+          <Text className="text-label text-text-primary mb-2">
+            Tu nombre y apellido (como en tu Yape)
+          </Text>
+          <TextInput
+            value={payerName}
+            onChangeText={setPayerName}
+            placeholder="Ej: Juan Pérez"
+            placeholderTextColor="#9e9e9e"
+            autoCapitalize="words"
+            className="border border-border rounded-xl px-4 py-3 text-body text-text-primary"
+          />
+          <Text className="text-caption text-text-muted mt-1">
+            El local lo usará para confirmar tu pago
+          </Text>
         </View>
       </View>
 

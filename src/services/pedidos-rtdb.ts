@@ -41,7 +41,11 @@ export interface Order {
   deliveryPhone?: string;
   deliveryNotes?: string;
   tableNumber?: string;
-  paidAt: string | null;
+  // Estado del pago: "pending" (yape esperando confirmación) o "confirmed"
+  paymentStatus?: "pending" | "confirmed";
+  // Nombre del pagador cuando el pago es con Yape
+  yapePayerName?: string;
+  paidAt?: string | null;
   readyAt?: string;
   createdAt: string;
 }
@@ -136,4 +140,19 @@ export function subscribeToOrdersByCustomer(
     );
   });
   return () => off(rootRef, "value", unsubscribe);
+}
+
+// Suscripción en tiempo real a un pedido por su id
+export function subscribeToOrderById(
+  orderId: string,
+  callback: (order: Order | null) => void,
+): () => void {
+  const unsubscribe = onValue(child(rootRef, orderId), (snap) => {
+    if (!snap.exists()) {
+      callback(null);
+      return;
+    }
+    callback({ id: orderId, ...(snap.val() as Omit<Order, "id">) });
+  });
+  return () => off(child(rootRef, orderId), "value", unsubscribe);
 }
