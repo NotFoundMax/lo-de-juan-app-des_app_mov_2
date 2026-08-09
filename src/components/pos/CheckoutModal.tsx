@@ -48,6 +48,9 @@ export default function CheckoutModal({
   onClose,
   processing,
 }: Props) {
+  const isMostrador = deliveryMode === null;
+  const nameRequired = isMostrador && !customerName.trim();
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View className="flex-1 bg-black/50 justify-center px-4">
@@ -61,16 +64,23 @@ export default function CheckoutModal({
 
           <ScrollView className="px-6">
             <Text className="text-caption text-text-muted mb-1">
-              Nombre del cliente (opcional)
+              Nombre del cliente {isMostrador ? "(obligatorio)" : "(opcional)"}
             </Text>
             <TextInput
-              className="border border-border rounded-xl px-4 py-3 text-body text-text-primary mb-4"
+              className={`border rounded-xl px-4 py-3 text-body text-text-primary mb-1 ${
+                nameRequired ? "border-error" : "border-border"
+              }`}
               placeholder="Mostrador"
               placeholderTextColor="#9e9e9e"
               value={customerName}
               onChangeText={onCustomerNameChange}
               editable={!processing}
             />
+            {nameRequired && (
+              <Text className="text-small text-error mb-4">
+                Ingresa el nombre del cliente para pedidos de mostrador
+              </Text>
+            )}
 
             <Text className="text-caption text-text-muted mb-1">
               Modo de entrega
@@ -168,8 +178,9 @@ export default function CheckoutModal({
 
             <TouchableOpacity
               onPress={onConfirm}
-              disabled={processing}
+              disabled={processing || nameRequired}
               className="bg-primary py-3 rounded-xl items-center"
+              style={{ opacity: processing || nameRequired ? 0.5 : 1 }}
             >
               {processing ? (
                 <ActivityIndicator color="white" />

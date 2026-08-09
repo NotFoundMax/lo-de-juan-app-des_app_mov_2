@@ -138,6 +138,16 @@ export default function PosScreen() {
   // Procesa el cobro del POS
   const handleCheckout = async () => {
     if (cart.length === 0) return;
+
+    // Mostrador: el nombre del cliente es obligatorio
+    if (deliveryMode === null && !customerName.trim()) {
+      Alert.alert(
+        "Nombre requerido",
+        "Ingresa el nombre del cliente para pedidos de mostrador.",
+      );
+      return;
+    }
+
     setProcessing(true);
 
     try {

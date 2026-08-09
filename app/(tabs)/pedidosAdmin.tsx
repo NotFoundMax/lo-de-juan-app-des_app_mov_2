@@ -49,6 +49,10 @@ const STATUS_ACTIONS: {
 };
 
 // Acción según el estado y el modo de entrega
+function isMostrador(order: Order): boolean {
+  return order.type === "pos" && order.deliveryMode === "recoger";
+}
+
 function getActionFor(order: Order): {
   next: StatusTransition;
   label: string;
@@ -67,7 +71,20 @@ function getActionFor(order: Order): {
   }
   if (order.deliveryMode === "mesa") {
     if (order.servedAt) return null;
-    return { next: "served", label: "SERVIR EN MESA", color: "#e65100" };
+    return {
+      next: "served",
+      label: order.tableNumber
+        ? `SERVIR EN MESA ${order.tableNumber}`
+        : "SERVIR EN MESA",
+      color: "#e65100",
+    };
+  }
+  if (isMostrador(order)) {
+    return {
+      next: "delivered",
+      label: `ENTREGAR A ${(order.customerName || "MOSTRADOR").toUpperCase()}`,
+      color: "#9e9e9e",
+    };
   }
   return base;
 }
