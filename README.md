@@ -124,8 +124,8 @@ Para probar la app sin registrarte, puedes usar estas cuentas de demostración:
 | Rol           | Email                | Contraseña  |
 | ------------- | -------------------- | ----------- |
 | Administrador | admin@lodjuan.com    | 123456      |
-| Empleado      | empleado@lodjuan.pe  | 123456      |
-| Cliente       | cliente@lodjuan.pe   | 123456      |
+| Empleado      | employee@lodjuan.com  | 123456      |
+| Cliente       | cliente@lodjuan.com   | 123456      |
 
 > Si las cuentas no existen aún en tu instancia Firebase, regístrate con cualquier email y luego cambia el campo `role` en Firestore a `admin`, `employee` o `customer`.
 
