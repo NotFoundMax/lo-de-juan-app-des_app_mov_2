@@ -13,8 +13,10 @@ import { useAuth } from "@/src/contexts/AuthContext";
 import {
   ChatMessage,
   listenMessages,
+  markChatRead,
   sendMessage,
 } from "@/src/services/chat-rtdb";
+import { Order, subscribeToOrderById } from "@/src/services/pedidos-rtdb";
 
 export default function ChatScreen() {
   const { orderId, orderName } = useLocalSearchParams<{
@@ -23,6 +25,7 @@ export default function ChatScreen() {
   }>();
   const { user, role } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [order, setOrder] = useState<Order | null>(null);
   const [text, setText] = useState("");
   const flatListRef = useRef<FlatList>(null);
 
@@ -33,14 +36,38 @@ export default function ChatScreen() {
   }, [orderId]);
 
   useEffect(() => {
+    if (!orderId) return;
+    const unsub = subscribeToOrderById(orderId, setOrder);
+    return unsub;
+  }, [orderId]);
+
+  // Marca el chat como leído al abrirlo
+  useEffect(() => {
+    if (!orderId || !role) return;
+    markChatRead(orderId, role);
+  }, [orderId, role]);
+
+  useEffect(() => {
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 200);
   }, [messages]);
 
+  // El chat solo es para delivery y queda de solo lectura al cerrarse el pedido
+  const readOnly = order
+    ? order.deliveryMode !== "delivery" ||
+      order.status === "delivered" ||
+      order.status === "cancelled"
+    : false;
+  const lockMessage = order
+    ? order.deliveryMode !== "delivery"
+      ? "El chat solo está disponible para pedidos a domicilio."
+      : "Este pedido ya se cerró. Chat en modo lectura."
+    : null;
+
   const handleSend = async () => {
     const trimmed = text.trim();
-    if (!trimmed || !orderId || !user) return;
+    if (!trimmed || !orderId || !user || readOnly) return;
 
     await sendMessage(orderId, {
       text: trimmed,
@@ -142,6 +169,13 @@ export default function ChatScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={90}
       >
+        {lockMessage && (
+          <View className="px-4 py-2 bg-warning-light border-t border-border">
+            <Text className="text-small text-text-primary text-center">
+              🔒 {lockMessage}
+            </Text>
+          </View>
+        )}
         <View className="flex-row items-center px-4 py-3 border-t border-border bg-white">
           <TextInput
             className="flex-1 bg-surface-hover rounded-full px-4 py-3 text-body"
@@ -150,13 +184,14 @@ export default function ChatScreen() {
             value={text}
             onChangeText={setText}
             multiline
+            editable={!readOnly}
           />
           <TouchableOpacity
             onPress={handleSend}
             className={`ml-2 rounded-full w-11 h-11 items-center justify-center ${
-              text.trim() ? "bg-primary" : "bg-border"
+              text.trim() && !readOnly ? "bg-primary" : "bg-border"
             }`}
-            disabled={!text.trim()}
+            disabled={!text.trim() || readOnly}
           >
             <Text className="text-body-bold text-text-inverse">↑</Text>
           </TouchableOpacity>

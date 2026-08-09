@@ -10,6 +10,7 @@ import {
 } from "@/src/components/orders/shared";
 import PageHeader from "@/src/components/PageHeader";
 import { useAuth } from "@/src/contexts/AuthContext";
+import { useChat } from "@/src/contexts/ChatContext";
 import { sucursales } from "@/src/data/sucursales";
 import {
     Order,
@@ -36,6 +37,8 @@ function OrderCard({
   onCancel: (id: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const { unread } = useChat();
+  const chatUnread = unread(order.id);
   const status = STATUS_CONFIG[order.status];
   const isYapePending = order.paymentStatus === "pending";
   const statusChip = isYapePending
@@ -163,22 +166,25 @@ function OrderCard({
               <Text className="text-body-bold text-error">Cancelar pedido</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity
-            onPress={() =>
-              router.push({
-                pathname: "/chat",
-                params: {
-                  orderId: order.id,
-                  orderName: order.ticketNumber || order.id.slice(0, 8).toUpperCase(),
-                },
-              })
-            }
-            className="bg-primary rounded-xl py-3 items-center mt-3 active:opacity-70"
-          >
-            <Text className="text-body-bold text-text-inverse">
-              Abrir chat
-            </Text>
-          </TouchableOpacity>
+          {order.deliveryMode === "delivery" && (
+            <TouchableOpacity
+              onPress={() =>
+                router.push({
+                  pathname: "/chat",
+                  params: {
+                    orderId: order.id,
+                    orderName: order.ticketNumber || order.id.slice(0, 8).toUpperCase(),
+                  },
+                })
+              }
+              className="bg-primary rounded-xl py-3 items-center mt-3 active:opacity-70"
+            >
+              <Text className="text-body-bold text-text-inverse">
+                Abrir chat
+                {chatUnread > 0 ? ` (${chatUnread})` : ""}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </TouchableOpacity>

@@ -19,6 +19,7 @@ import {
     STATUS_CONFIG,
 } from "@/src/components/orders/shared";
 import { useAuth } from "@/src/contexts/AuthContext";
+import { useChat } from "@/src/contexts/ChatContext";
 import { sucursales } from "@/src/data/sucursales";
 import {
     Order,
@@ -36,13 +37,40 @@ const FILTERS: { key: FilterStatus; label: string }[] = [
   { key: "delivered", label: "Entregado" },
 ];
 
+// "served" no es un estado real: marca que el pedido se sirvió en mesa
+type StatusTransition = Order["status"] | "served";
+
 const STATUS_ACTIONS: {
-  [key: string]: { next: string; label: string; color: string };
+  [key: string]: { next: StatusTransition; label: string; color: string };
 } = {
   pending: { next: "preparing", label: "Aceptar", color: "#1976d2" },
   preparing: { next: "ready", label: "Listo", color: "#43A047" },
   ready: { next: "delivered", label: "Entregar", color: "#9e9e9e" },
 };
+
+// Acción según el estado y el modo de entrega
+function getActionFor(order: Order): {
+  next: StatusTransition;
+  label: string;
+  color: string;
+} | null {
+  const base = STATUS_ACTIONS[order.status];
+  if (!base) return null;
+  if (order.status !== "ready") return base;
+
+  if (order.deliveryMode === "delivery") {
+    return {
+      next: "delivered",
+      label: "ENTREGAR AL MOTORIZADO",
+      color: "#9e9e9e",
+    };
+  }
+  if (order.deliveryMode === "mesa") {
+    if (order.servedAt) return null;
+    return { next: "served", label: "SERVIR EN MESA", color: "#e65100" };
+  }
+  return base;
+}
 
 function MiniStepper({
   steps,
@@ -99,12 +127,14 @@ function AdminOrderCard({
   onToggle,
 }: {
   order: Order;
-  onStatusChange: (orderId: string, newStatus: Order["status"]) => void;
+  onStatusChange: (orderId: string, newStatus: StatusTransition) => void;
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const { unread } = useChat();
+  const chatUnread = unread(order.id);
   const status = STATUS_CONFIG[order.status];
-  const action = STATUS_ACTIONS[order.status];
+  const action = getActionFor(order);
   const elapsed = useElapsed(order.createdAt, order.readyAt, order.status);
   const urgencyColor = getUrgencyColor(elapsed);
   const ticketNum = order.ticketNumber || order.id.slice(0, 4).toUpperCase();
@@ -116,7 +146,10 @@ function AdminOrderCard({
 
   const handleStatusPress = () => {
     if (!action) return;
-    const statusLabel = STATUS_CONFIG[action.next].label;
+    const statusLabel =
+      action.next === "served"
+        ? "servir en mesa"
+        : STATUS_CONFIG[action.next].label;
     const doUpdate = () => onStatusChange(order.id, action.next);
 
     if (Platform.OS === "web") {
@@ -312,20 +345,29 @@ function AdminOrderCard({
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity
-            onPress={() =>
-              router.push({
-                pathname: "/chat",
-                params: {
-                  orderId: order.id,
-                  orderName: order.ticketNumber || order.id.slice(0, 8).toUpperCase(),
-                },
-              })
-            }
-            className="rounded-xl py-3 items-center mt-2 border border-primary active:opacity-70"
-          >
-            <Text className="text-body-bold text-primary">Abrir chat</Text>
-          </TouchableOpacity>
+          {order.deliveryMode === "delivery" && (
+            <TouchableOpacity
+              onPress={() =>
+                router.push({
+                  pathname: "/chat",
+                  params: {
+                    orderId: order.id,
+                    orderName: order.ticketNumber || order.id.slice(0, 8).toUpperCase(),
+                  },
+                })
+              }
+              className="rounded-xl py-3 items-center mt-2 border border-primary active:opacity-70"
+            >
+              <Text className="text-body-bold text-primary">Abrir chat</Text>
+              {chatUnread > 0 && (
+                <View className="absolute -top-2 -right-2 bg-primary rounded-full min-w-[20px] h-[20px] justify-center items-center px-1">
+                  <Text className="text-text-inverse text-[10px] font-bold">
+                    {chatUnread > 99 ? "99+" : chatUnread}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </View>
@@ -444,11 +486,13 @@ function ComandaCard({
   onStatusChange,
 }: {
   order: Order;
-  onStatusChange: (orderId: string, newStatus: Order["status"]) => void;
+  onStatusChange: (orderId: string, newStatus: StatusTransition) => void;
 }) {
+  const { unread } = useChat();
+  const chatUnread = unread(order.id);
   const elapsed = useElapsed(order.createdAt, order.readyAt, order.status);
   const status = STATUS_CONFIG[order.status];
-  const action = STATUS_ACTIONS[order.status];
+  const action = getActionFor(order);
   const urgencyColor = getUrgencyColor(elapsed);
 
   const deliveryLabel =
@@ -678,30 +722,32 @@ function ComandaCard({
                 {action.label.toUpperCase()}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() =>
-                router.push({
-                  pathname: "/chat",
-                  params: {
-                    orderId: order.id,
-                    orderName: order.ticketNumber || order.id.slice(0, 8).toUpperCase(),
-                  },
-                })
-              }
-              style={{
-                borderRadius: 6,
-                paddingVertical: 12,
-                alignItems: "center",
-                marginTop: 8,
-                borderWidth: 1.5,
-                borderColor: "#f84d3f",
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={{ color: "#f84d3f", fontWeight: "700", fontSize: 14 }}>
-                Abrir chat
-              </Text>
-            </TouchableOpacity>
+            {order.deliveryMode === "delivery" && (
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: "/chat",
+                    params: {
+                      orderId: order.id,
+                      orderName: order.ticketNumber || order.id.slice(0, 8).toUpperCase(),
+                    },
+                  })
+                }
+                style={{
+                  borderRadius: 6,
+                  paddingVertical: 12,
+                  alignItems: "center",
+                  marginTop: 8,
+                  borderWidth: 1.5,
+                  borderColor: "#f84d3f",
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: "#f84d3f", fontWeight: "700", fontSize: 14 }}>
+                  Abrir chat{chatUnread > 0 ? ` (${chatUnread})` : ""}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </>
       )}
@@ -758,9 +804,14 @@ export default function PedidosAdminScreen() {
   // Actualiza el estado de un pedido
   const handleStatusChange = async (
     orderId: string,
-    newStatus: Order["status"],
+    newStatus: StatusTransition,
   ) => {
     try {
+      // "served" solo marca el momento en que se sirvió el pedido en mesa
+      if (newStatus === "served") {
+        await updateOrder(orderId, { servedAt: new Date().toISOString() });
+        return;
+      }
       await updateOrder(orderId, {
         status: newStatus,
         ...(newStatus === "ready" ? { readyAt: new Date().toISOString() } : {}),

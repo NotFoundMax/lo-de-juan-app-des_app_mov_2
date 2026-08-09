@@ -1,5 +1,6 @@
 import { AuthProvider } from "@/src/contexts/AuthContext";
 import { CarritoProvider } from "@/src/contexts/CarritoContext";
+import { ChatProvider } from "@/src/contexts/ChatContext";
 import { DeliveryProvider } from "@/src/contexts/DeliveryContext";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -15,8 +16,9 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <CarritoProvider>
-        <DeliveryProvider>
-          <Stack screenOptions={{ headerShown: false }}>
+        <ChatProvider>
+          <DeliveryProvider>
+            <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -37,7 +39,8 @@ export default function RootLayout() {
             <Stack.Screen name="chat" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="auto" />
-        </DeliveryProvider>
+          </DeliveryProvider>
+        </ChatProvider>
       </CarritoProvider>
     </AuthProvider>
   );

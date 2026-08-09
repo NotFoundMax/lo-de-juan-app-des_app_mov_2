@@ -1,5 +1,6 @@
 import { useAuth } from "@/src/contexts/AuthContext";
 import { useCarrito } from "@/src/contexts/CarritoContext";
+import { useChat } from "@/src/contexts/ChatContext";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { Platform, Text, View } from "react-native";
@@ -20,7 +21,10 @@ const isAndroid = Platform.OS === "android";
 // Ícono con badge para la barra de tabs
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
   const { itemCount } = useCarrito();
+  const { totalUnread } = useChat();
   const showBadge = name === "index" && itemCount > 0;
+  const showChatBadge =
+    (name === "pedidosAdmin" || name === "pedidosCustomer") && totalUnread > 0;
 
   return (
     <View className="items-center">
@@ -29,10 +33,16 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
         size={focused ? 24 : 20}
         color={focused ? "#f84d3f" : "#805140"}
       />
-      {showBadge && (
+      {(showBadge || showChatBadge) && (
         <View className="absolute -top-1 -right-3 bg-primary rounded-full min-w-[18px] h-[18px] justify-center items-center px-1">
           <Text className="text-text-inverse text-[10px] font-bold">
-            {itemCount > 99 ? "99+" : itemCount}
+            {showBadge
+              ? itemCount > 99
+                ? "99+"
+                : itemCount
+              : totalUnread > 99
+                ? "99+"
+                : totalUnread}
           </Text>
         </View>
       )}

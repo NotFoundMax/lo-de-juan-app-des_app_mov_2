@@ -45,6 +45,8 @@ export interface Order {
   paymentStatus?: "pending" | "confirmed";
   // Nombre del pagador cuando el pago es con Yape
   yapePayerName?: string;
+  // Momento en que se sirvió el pedido en mesa
+  servedAt?: string;
   paidAt?: string | null;
   readyAt?: string;
   createdAt: string;
