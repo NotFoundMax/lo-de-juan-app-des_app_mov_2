@@ -477,7 +477,17 @@ function StepDelivery({
             keyboardType="phone-pad"
             maxLength={9}
             className="bg-surface-hover rounded-xl px-4 py-3 text-body border border-border"
+            style={
+              phone.length > 0 && phone.length < 9
+                ? { borderColor: "#f84d3f" }
+                : undefined
+            }
           />
+          {phone.length > 0 && phone.length < 9 && (
+            <Text className="text-caption text-error mt-1">
+              Ingresa al menos 9 dígitos ({phone.length}/9)
+            </Text>
+          )}
         </View>
 
         <View>
