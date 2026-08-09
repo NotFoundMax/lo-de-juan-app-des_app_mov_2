@@ -4,6 +4,7 @@ import CartPanel from "@/src/components/pos/CartPanel";
 import CategoryFilter from "@/src/components/pos/CategoryFilter";
 import CheckoutModal from "@/src/components/pos/CheckoutModal";
 import ProductCard from "@/src/components/pos/ProductCard";
+import { router } from "expo-router";
 import type { Categoria } from "@/src/services/categorias-rtdb";
 import { getCategorias } from "@/src/services/categorias-rtdb";
 import type {
@@ -190,10 +191,19 @@ export default function PosScreen() {
       setDeliveryMode(null);
       setTableNumber("");
 
-      Alert.alert(
-        "Venta registrada",
-        `Pedido creado con éxito por S/. ${total.toFixed(2)}`,
-      );
+      const successMessage = `Pedido creado con éxito por S/. ${total.toFixed(2)}`;
+
+      if (Platform.OS === "web") {
+        window.alert(`Pedido realizado\n\n${successMessage}`);
+        router.replace("/(tabs)/pedidosAdmin");
+      } else {
+        Alert.alert("Pedido realizado", successMessage, [
+          {
+            text: "OK",
+            onPress: () => router.replace("/(tabs)/pedidosAdmin"),
+          },
+        ]);
+      }
     } catch {
       Alert.alert("Error", "No se pudo completar la venta. Intenta de nuevo.");
     } finally {
