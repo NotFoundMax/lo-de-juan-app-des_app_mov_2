@@ -1,5 +1,5 @@
 import { signUp } from "@/src/services/auth-rtdb";
-import { showError } from "@/src/utils/errorHandler";
+import { showAuthError } from "@/src/utils/errorHandler";
 import { Link, router } from "expo-router";
 import { useState } from "react";
 import { Alert, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -26,7 +26,7 @@ export default function RegisterScreen() {
       await signUp(email, password, name);
       router.replace("/(tabs)");
     } catch (error) {
-      showError(error, "register");
+      showAuthError(error, "register");
     } finally {
       setLoading(false);
     }

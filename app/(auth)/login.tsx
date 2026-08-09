@@ -3,7 +3,7 @@ import {
     signInWithGoogle,
     signInWithGoogleWeb,
 } from "@/src/services/auth-rtdb";
-import { showError } from "@/src/utils/errorHandler";
+import { showAuthError } from "@/src/utils/errorHandler";
 import * as Google from "expo-auth-session/providers/google";
 import { Link, router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -52,7 +52,7 @@ export default function LoginScreen() {
       setGoogleLoading(true);
       signInWithGoogle(id_token)
         .then(() => router.replace("/(tabs)"))
-        .catch((error) => showError(error, "google-login"))
+        .catch((error) => showAuthError(error, "google-login"))
         .finally(() => setGoogleLoading(false));
     } else if (_response.type === "error") {
       Alert.alert("Error", "No se pudo iniciar sesión con Google.");
@@ -68,7 +68,7 @@ export default function LoginScreen() {
         await signInWithGoogleWeb();
         router.replace("/(tabs)");
       } catch (error: any) {
-        showError(error, "google-login");
+        showAuthError(error, "google-login");
       } finally {
         setGoogleLoading(false);
       }
@@ -89,7 +89,7 @@ export default function LoginScreen() {
       await signIn(email, password);
       router.replace("/(tabs)");
     } catch (error) {
-      showError(error, "login");
+      showAuthError(error, "login");
     } finally {
       setLoading(false);
     }
