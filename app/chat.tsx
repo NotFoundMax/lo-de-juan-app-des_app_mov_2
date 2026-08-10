@@ -2,13 +2,13 @@ import { useLocalSearchParams, router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   FlatList,
-  KeyboardAvoidingView,
-  Platform,
+  Keyboard,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/src/contexts/AuthContext";
 import {
   ChatMessage,
@@ -25,10 +25,25 @@ export default function ChatScreen() {
     orderName: string;
   }>();
   const { user, role } = useAuth();
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [order, setOrder] = useState<Order | null>(null);
   const [text, setText] = useState("");
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", (e) =>
+      setKeyboardHeight(e.endCoordinates.height),
+    );
+    const hideSub = Keyboard.addListener("keyboardDidHide", () =>
+      setKeyboardHeight(0),
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (!orderId) return;
@@ -120,7 +135,10 @@ export default function ChatScreen() {
   return (
     <View className="flex-1 bg-white">
       {/* Header */}
-      <View className="bg-primary pt-12 pb-4 px-4 flex-row items-center">
+      <View
+        className="bg-primary pb-4 px-4 flex-row items-center"
+        style={{ paddingTop: insets.top + 16 }}
+      >
         <TouchableOpacity onPress={() => router.back()} className="mr-3">
           <Text className="text-body-bold text-text-inverse">←</Text>
         </TouchableOpacity>
@@ -148,6 +166,7 @@ export default function ChatScreen() {
       {/* Messages */}
       <FlatList
         ref={flatListRef}
+        className="flex-1"
         data={messages}
         keyExtractor={(item) => item.id}
         contentContainerClassName="px-4 py-3"
@@ -206,10 +225,7 @@ export default function ChatScreen() {
       />
 
       {/* Input bar */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={90}
-      >
+      <View style={{ paddingBottom: keyboardHeight }}>
         {lockMessage && (
           <View className="px-4 py-2 bg-warning-light border-t border-border">
             <Text className="text-small text-text-primary text-center">
@@ -217,9 +233,13 @@ export default function ChatScreen() {
             </Text>
           </View>
         )}
-        <View className="flex-row items-center px-4 py-3 border-t border-border bg-white">
+        <View
+          className="flex-row items-center px-4 py-3 border-t border-border bg-white"
+          style={{ paddingBottom: insets.bottom + 12 }}
+        >
           <TextInput
-            className="flex-1 bg-surface-hover rounded-full px-4 py-3 text-body"
+            className="flex-1 bg-surface-hover rounded-full px-4 py-3 text-body text-text-primary"
+            style={{ color: "#212020" }}
             placeholder="Escribe un mensaje..."
             placeholderTextColor="#9e9e9e"
             value={text}
@@ -237,7 +257,7 @@ export default function ChatScreen() {
             <Text className="text-body-bold text-text-inverse">↑</Text>
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </View>
   );
 }
