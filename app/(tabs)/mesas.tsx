@@ -18,7 +18,7 @@ import {
 import type { Producto } from "@/src/services/productos-rtdb";
 import {
   descontarStock,
-  getProductosActivos,
+  subscribeToProductosActivos,
 } from "@/src/services/productos-rtdb";
 import {
   groupByRound,
@@ -32,7 +32,6 @@ import {
   Alert,
   FlatList,
   Platform,
-  RefreshControl,
   Text,
   TouchableOpacity,
   View,
@@ -74,7 +73,6 @@ export default function MesasScreen() {
   const [processingAdd, setProcessingAdd] = useState(false);
   const [processingCharge, setProcessingCharge] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -87,24 +85,16 @@ export default function MesasScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  const loadProducts = async () => {
-    try {
-      const [prods, cats] = await Promise.all([
-        getProductosActivos(),
-        getCategorias(),
-      ]);
-      setProductos(prods);
-      setCategorias(cats);
-    } catch {
-      // noop: los productos se reintentan al abrir el modal
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
+  // Suscripción en tiempo real a productos activos + carga de categorías
   useEffect(() => {
-    loadProducts();
+    const unsubscribe = subscribeToProductosActivos(setProductos);
+    getCategorias()
+      .then(setCategorias)
+      .catch(() => {
+        // noop: las categorías se cargan puntual
+      })
+      .finally(() => setLoading(false));
+    return unsubscribe;
   }, []);
 
   // Pedidos de mesa del POS (pagados o no) agrupados por número de mesa
@@ -417,15 +407,6 @@ export default function MesasScreen() {
         data={mesas}
         keyExtractor={(item) => item.tableNumber}
         contentContainerStyle={{ paddingBottom: 40 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              loadProducts();
-            }}
-          />
-        }
         ListHeaderComponent={
           <View
             className="bg-primary pb-4 px-4"

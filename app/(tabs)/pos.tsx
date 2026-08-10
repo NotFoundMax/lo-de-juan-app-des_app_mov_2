@@ -15,7 +15,7 @@ import type {
 } from "@/src/services/pedidos-rtdb";
 import { createOrder, subscribeToOrders } from "@/src/services/pedidos-rtdb";
 import type { Producto } from "@/src/services/productos-rtdb";
-import { descontarStock, getProductosActivos } from "@/src/services/productos-rtdb";
+import { descontarStock, subscribeToProductosActivos } from "@/src/services/productos-rtdb";
 import { isMesaOcupada } from "@/src/utils/mesa-items";
 import { useEffect, useState } from "react";
 import {
@@ -23,7 +23,6 @@ import {
     FlatList,
     KeyboardAvoidingView,
     Platform,
-    RefreshControl,
     Text,
     View,
 } from "react-native";
@@ -44,28 +43,16 @@ export default function PosScreen() {
   const [tableNumber, setTableNumber] = useState("");
   const [processing, setProcessing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
 
-  // Carga los datos del POS
-  const load = async () => {
-    try {
-      const [prods, cats] = await Promise.all([
-        getProductosActivos(),
-        getCategorias(),
-      ]);
-      setProductos(prods);
-      setCategorias(cats);
-    } catch (e) {
-      console.error("Error loading POS:", e);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
+  // Suscripción en tiempo real a productos activos + carga de categorías
   useEffect(() => {
-    load();
+    const unsubscribe = subscribeToProductosActivos(setProductos);
+    getCategorias()
+      .then(setCategorias)
+      .catch((e) => console.error("Error loading POS categories:", e))
+      .finally(() => setLoading(false));
+    return unsubscribe;
   }, []);
 
   // Mantiene las órdenes al día para saber qué mesas están ocupadas
@@ -259,15 +246,6 @@ export default function PosScreen() {
         keyExtractor={(item) => item.id}
         columnWrapperStyle={{ paddingHorizontal: 8, gap: 8 }}
         contentContainerStyle={{ paddingBottom: cartExpanded ? 420 : 80 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              load();
-            }}
-          />
-        }
         ListHeaderComponent={
           <>
             <View className="bg-primary pb-4 px-4" style={{ paddingTop: insets.top + 16 }}>
