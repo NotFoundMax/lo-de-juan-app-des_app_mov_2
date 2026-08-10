@@ -1128,13 +1128,14 @@ export default function PedidosAdminScreen() {
       );
     });
 
-  const filterCounts = {
+  const filterCounts: Record<FilterStatus, number> = {
     all: queueOrders.length,
     pending: queueOrders.filter((o) => o.status === "pending").length,
     preparing: queueOrders.filter((o) => o.status === "preparing").length,
     ready: queueOrders.filter((o) => o.status === "ready").length,
     on_the_way: queueOrders.filter((o) => o.status === "on_the_way").length,
     delivered: queueOrders.filter((o) => o.status === "delivered").length,
+    cancelled: queueOrders.filter((o) => o.status === "cancelled").length,
   };
 
   const todayLabel = new Date().toLocaleDateString("es-PE", {
