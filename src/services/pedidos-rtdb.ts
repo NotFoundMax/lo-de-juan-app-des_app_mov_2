@@ -186,6 +186,7 @@ export async function advanceMesaOrder(
   const patch: Record<string, any> = { items };
   if (transition === "served") {
     patch.servedAt = new Date().toISOString();
+    patch.status = "delivered";
   } else {
     patch.status = transition;
     if (transition === "ready") patch.readyAt = new Date().toISOString();

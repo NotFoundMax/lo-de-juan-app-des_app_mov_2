@@ -184,7 +184,7 @@ function AdminOrderCard({
   const miniSteps =
     order.deliveryMode === "delivery"
       ? ["pending", "preparing", "ready", "on_the_way", "delivered"]
-      : ["pending", "preparing", "ready"];
+      : ["pending", "preparing", "ready", "delivered"];
 
   const sucursal =
     order.deliveryMode === "recoger" && order.sucursalId

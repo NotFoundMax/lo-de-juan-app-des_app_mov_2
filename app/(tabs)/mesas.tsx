@@ -134,7 +134,10 @@ export default function MesasScreen() {
       if (hasItemStatus(order.items)) {
         await advanceMesaOrder(order.id, "served");
       } else {
-        await updateOrder(order.id, { servedAt: new Date().toISOString() });
+        await updateOrder(order.id, {
+          servedAt: new Date().toISOString(),
+          status: "delivered",
+        });
       }
     } catch {
       showAlert("Error", "No se pudo marcar el pedido como servido.");
