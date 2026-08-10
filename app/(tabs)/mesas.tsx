@@ -244,7 +244,11 @@ export default function MesasScreen() {
 
         {itemAware ? (
           groupByRound(order.items).map((g, gi) => (
-            <View key={`round-${g.round}`} className={gi === 0 ? "" : "mt-2"}>
+            <View
+              key={`round-${g.round}`}
+              className={gi === 0 ? "" : "mt-2"}
+              style={{ opacity: g.status === "served" ? 0.4 : 1 }}
+            >
               <View className="flex-row items-center mb-0.5">
                 <View
                   className="rounded-full px-2 py-0.5 mr-2"
