@@ -8,11 +8,13 @@ import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
 import { router } from "expo-router";
 import * as Sharing from "expo-sharing";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Image,
+    Keyboard,
     Platform,
+    ScrollView,
     Text,
     TextInput,
     TouchableOpacity,
@@ -29,7 +31,27 @@ export default function YapeScreen() {
   const [processing, setProcessing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [payerName, setPayerName] = useState("");
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const lastTap = useRef<number>(0);
+  const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+      // Lleva el input a la vista justo arriba del teclado (como WhatsApp)
+      setTimeout(
+        () => scrollRef.current?.scrollToEnd({ animated: true }),
+        80,
+      );
+    });
+    const hideSub = Keyboard.addListener("keyboardDidHide", () =>
+      setKeyboardHeight(0),
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const deliveryFee = pending?.deliveryMode === "delivery" ? 5 : 0;
   const grandTotal = total + deliveryFee;
@@ -140,7 +162,17 @@ export default function YapeScreen() {
         <Text className="text-h2 text-text-inverse">Paga con Yape</Text>
       </View>
 
-      <View className="flex-1 justify-center items-center px-6">
+      <ScrollView
+        ref={scrollRef}
+        className="flex-1"
+        contentContainerClassName={
+          keyboardHeight > 0
+            ? "items-center px-6"
+            : "justify-center items-center px-6"
+        }
+        contentContainerStyle={{ paddingBottom: keyboardHeight / 2 }}
+        keyboardShouldPersistTaps="handled"
+      >
         <TouchableOpacity
           onPress={handleDoubleTap}
           activeOpacity={0.7}
@@ -199,13 +231,14 @@ export default function YapeScreen() {
             placeholder="Ej: Juan Pérez"
             placeholderTextColor="#9e9e9e"
             autoCapitalize="words"
+            style={{ color: "#212020" }}
             className="border border-border rounded-xl px-4 py-3 text-body text-text-primary"
           />
           <Text className="text-caption text-text-muted mt-1">
             El local lo usará para confirmar tu pago
           </Text>
         </View>
-      </View>
+      </ScrollView>
 
       <View
         className="px-6 py-4 border-t border-border"
