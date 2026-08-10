@@ -120,7 +120,7 @@ export default function AddItemsModal({
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View className="flex-1 bg-black/50">
-        <View className="flex-1 mt-auto bg-white rounded-t-3xl max-h-[90%]">
+        <View className="flex-1 mt-auto bg-white rounded-t-3xl max-h-[81%]">
           <View className="flex-row items-center justify-between px-6 pt-6 pb-3">
             <Text className="text-h3 text-text-primary">
               Agregar a {mesaLabel}
@@ -137,6 +137,7 @@ export default function AddItemsModal({
           />
 
           <FlatList
+            className="flex-1"
             data={filtered}
             numColumns={2}
             keyExtractor={(item) => item.id}

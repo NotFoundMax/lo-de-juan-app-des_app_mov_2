@@ -19,12 +19,12 @@ export default function CategoryFilter({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      className="py-3 px-4"
-      contentContainerStyle={{ gap: 8 }}
+      className="py-1 px-4 flex-grow-0"
+      contentContainerStyle={{ gap: 8, alignItems: "center" }}
     >
       <TouchableOpacity
         onPress={() => onSelect(null)}
-        className={`px-4 py-2 rounded-full border ${
+        className={`px-4 py-1 rounded-full border ${
           isAll ? "bg-primary border-primary" : "bg-white border-border"
         }`}
       >
@@ -43,7 +43,7 @@ export default function CategoryFilter({
           <TouchableOpacity
             key={cat.id}
             onPress={() => onSelect(cat.id)}
-            className={`px-4 py-2 rounded-full border ${
+            className={`px-4 py-1 rounded-full border ${
               active ? "bg-primary border-primary" : "bg-white border-border"
             }`}
           >
