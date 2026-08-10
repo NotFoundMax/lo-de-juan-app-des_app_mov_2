@@ -23,9 +23,11 @@ import { useChat } from "@/src/contexts/ChatContext";
 import { sucursales } from "@/src/data/sucursales";
 import {
     Order,
+    advanceMesaOrder,
     subscribeToOrders,
     updateOrder,
 } from "@/src/services/pedidos-rtdb";
+import { groupByRound, ROUND_STATUS } from "@/src/utils/mesa-items";
 
 type FilterStatus = "all" | Order["status"];
 
@@ -279,16 +281,52 @@ function AdminOrderCard({
       {/* ─── Expanded section ─── */}
       {expanded && (
         <View className="px-4 pb-4 pt-1">
-          {order.items.map((item, i) => (
-            <View key={i} className="flex-row justify-between py-1">
-              <Text className="text-body text-text-primary flex-1">
-                {item.quantity}× {item.name}
-              </Text>
-              <Text className="text-body-bold text-text-primary">
-                S/.{item.subtotal.toFixed(2)}
-              </Text>
-            </View>
-          ))}
+          {order.deliveryMode === "mesa" ? (
+            groupByRound(order.items).map((g, gi) => (
+              <View key={`round-${g.round}`} className={gi === 0 ? "" : "mt-2"}>
+                <View className="flex-row items-center mb-0.5">
+                  <View
+                    className="rounded-full px-2 py-0.5 mr-2"
+                    style={{ backgroundColor: ROUND_STATUS[g.status].bg }}
+                  >
+                    <Text
+                      className="text-[10px] font-bold"
+                      style={{ color: ROUND_STATUS[g.status].color }}
+                    >
+                      Ronda {g.round}
+                    </Text>
+                  </View>
+                  <Text
+                    className="text-[11px] font-bold"
+                    style={{ color: ROUND_STATUS[g.status].color }}
+                  >
+                    {ROUND_STATUS[g.status].label}
+                  </Text>
+                </View>
+                {g.items.map((item, i) => (
+                  <View key={i} className="flex-row justify-between py-1">
+                    <Text className="text-body text-text-primary flex-1">
+                      {item.quantity}× {item.name}
+                    </Text>
+                    <Text className="text-body-bold text-text-primary">
+                      S/.{item.subtotal.toFixed(2)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ))
+          ) : (
+            order.items.map((item, i) => (
+              <View key={i} className="flex-row justify-between py-1">
+                <Text className="text-body text-text-primary flex-1">
+                  {item.quantity}× {item.name}
+                </Text>
+                <Text className="text-body-bold text-text-primary">
+                  S/.{item.subtotal.toFixed(2)}
+                </Text>
+              </View>
+            ))
+          )}
 
           <Separator />
 
@@ -661,56 +699,150 @@ function ComandaCard({
 
       {/* Items */}
       <View style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
-        {order.items.map((item, i) => (
-          <View key={i} style={{ marginBottom: 6 }}>
-            <View style={{ flexDirection: "row", alignItems: "baseline" }}>
-              <Text
-                style={{
-                  fontFamily: "monospace",
-                  color: "#000",
-                  fontSize: 14,
-                  fontWeight: "700",
-                  marginRight: 6,
-                  minWidth: 20,
-                  textAlign: "right",
-                }}
-              >
-                {item.quantity}×
-              </Text>
-              <Text
-                style={{
-                  fontFamily: "monospace",
-                  color: "#000",
-                  fontSize: 14,
-                  flex: 1,
-                }}
-              >
-                {item.name}
-              </Text>
-            </View>
-            {item.notes ? (
+        {order.deliveryMode === "mesa" ? (
+          groupByRound(order.items).map((g, gi) => (
+            <View
+              key={`round-${g.round}`}
+              style={{ marginBottom: 10, marginTop: gi === 0 ? 0 : 4 }}
+            >
               <View
                 style={{
-                  marginLeft: 26,
-                  marginTop: 2,
-                  paddingHorizontal: 6,
-                  paddingVertical: 2,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginBottom: 4,
                 }}
               >
                 <Text
                   style={{
                     fontFamily: "monospace",
-                    color: "#666",
                     fontSize: 11,
-                    fontStyle: "italic",
+                    fontWeight: "700",
+                    color: ROUND_STATUS[g.status].color,
+                    backgroundColor: ROUND_STATUS[g.status].bg,
+                    paddingHorizontal: 6,
+                    paddingVertical: 2,
+                    marginRight: 6,
                   }}
                 >
-                  ⚠ {item.notes}
+                  RONDA {g.round}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: "monospace",
+                    fontSize: 11,
+                    fontWeight: "700",
+                    color: ROUND_STATUS[g.status].color,
+                  }}
+                >
+                  ● {ROUND_STATUS[g.status].label.toUpperCase()}
                 </Text>
               </View>
-            ) : null}
-          </View>
-        ))}
+              {g.items.map((item, i) => (
+                <View key={i} style={{ marginBottom: 4 }}>
+                  <View
+                    style={{ flexDirection: "row", alignItems: "baseline" }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: "monospace",
+                        color: "#000",
+                        fontSize: 14,
+                        fontWeight: "700",
+                        marginRight: 6,
+                        minWidth: 20,
+                        textAlign: "right",
+                      }}
+                    >
+                      {item.quantity}×
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: "monospace",
+                        color: "#000",
+                        fontSize: 14,
+                        flex: 1,
+                      }}
+                    >
+                      {item.name}
+                    </Text>
+                  </View>
+                  {item.notes ? (
+                    <View
+                      style={{
+                        marginLeft: 26,
+                        marginTop: 2,
+                        paddingHorizontal: 6,
+                        paddingVertical: 2,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: "monospace",
+                          color: "#666",
+                          fontSize: 11,
+                          fontStyle: "italic",
+                        }}
+                      >
+                        ⚠ {item.notes}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          ))
+        ) : (
+          order.items.map((item, i) => (
+            <View key={i} style={{ marginBottom: 6 }}>
+              <View style={{ flexDirection: "row", alignItems: "baseline" }}>
+                <Text
+                  style={{
+                    fontFamily: "monospace",
+                    color: "#000",
+                    fontSize: 14,
+                    fontWeight: "700",
+                    marginRight: 6,
+                    minWidth: 20,
+                    textAlign: "right",
+                  }}
+                >
+                  {item.quantity}×
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: "monospace",
+                    color: "#000",
+                    fontSize: 14,
+                    flex: 1,
+                  }}
+                >
+                  {item.name}
+                </Text>
+              </View>
+              {item.notes ? (
+                <View
+                  style={{
+                    marginLeft: 26,
+                    marginTop: 2,
+                    paddingHorizontal: 6,
+                    paddingVertical: 2,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "monospace",
+                      color: "#666",
+                      fontSize: 11,
+                      fontStyle: "italic",
+                    }}
+                  >
+                    ⚠ {item.notes}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          ))
+        )}
       </View>
 
       {/* Action button */}
@@ -824,6 +956,16 @@ export default function PedidosAdminScreen() {
     newStatus: StatusTransition,
   ) => {
     try {
+      const order = orders.find((o) => o.id === orderId);
+
+      // Pedidos de mesa: avanza el estado junto con los ítems de la ronda actual
+      if (order?.deliveryMode === "mesa") {
+        if (newStatus === "served" || newStatus === "preparing" || newStatus === "ready") {
+          await advanceMesaOrder(orderId, newStatus);
+          return;
+        }
+      }
+
       // "served" solo marca el momento en que se sirvió el pedido en mesa
       if (newStatus === "served") {
         await updateOrder(orderId, { servedAt: new Date().toISOString() });
@@ -840,12 +982,15 @@ export default function PedidosAdminScreen() {
 
   // Confirma el pago Yape de un pedido y lo pasa a la cola de preparación
   const handleYapeConfirm = async (orderId: string) => {
+    const order = orders.find((o) => o.id === orderId);
     const doConfirm = async () => {
       try {
-        await updateOrder(orderId, {
+        const patch: Record<string, any> = {
           paymentStatus: "confirmed",
           paidAt: new Date().toISOString(),
-        });
+        };
+        if (order) patch.paidAmount = order.total;
+        await updateOrder(orderId, patch);
       } catch {
         Alert.alert("Error", "No se pudo confirmar el pago.");
       }

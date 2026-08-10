@@ -9,12 +9,14 @@ import type { Categoria } from "@/src/services/categorias-rtdb";
 import { getCategorias } from "@/src/services/categorias-rtdb";
 import type {
     DeliveryMode,
+    Order,
     OrderItem,
     PaymentMethod,
 } from "@/src/services/pedidos-rtdb";
-import { createOrder } from "@/src/services/pedidos-rtdb";
+import { createOrder, subscribeToOrders } from "@/src/services/pedidos-rtdb";
 import type { Producto } from "@/src/services/productos-rtdb";
 import { descontarStock, getProductosActivos } from "@/src/services/productos-rtdb";
+import { isMesaOcupada } from "@/src/utils/mesa-items";
 import { useEffect, useState } from "react";
 import {
     Alert,
@@ -43,6 +45,7 @@ export default function PosScreen() {
   const [processing, setProcessing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   // Carga los datos del POS
   const load = async () => {
@@ -63,6 +66,11 @@ export default function PosScreen() {
 
   useEffect(() => {
     load();
+  }, []);
+
+  // Mantiene las órdenes al día para saber qué mesas están ocupadas
+  useEffect(() => {
+    return subscribeToOrders(setOrders);
   }, []);
 
   // Obtiene la cantidad del producto en el carrito
@@ -150,6 +158,20 @@ export default function PosScreen() {
       return;
     }
 
+    // Mesa: no se puede usar una mesa ocupada sin liberar
+    if (deliveryMode === "mesa" && tableNumber.trim()) {
+      const mesa = tableNumber.trim();
+      if (isMesaOcupada(orders, mesa)) {
+        const message = `Mesa ${mesa} está ocupada. Libérala desde el tab Mesas para poder usarla.`;
+        if (Platform.OS === "web") {
+          window.alert(message);
+        } else {
+          Alert.alert("Mesa ocupada", message);
+        }
+        return;
+      }
+    }
+
     setProcessing(true);
 
     try {
@@ -159,6 +181,8 @@ export default function PosScreen() {
         quantity,
         unitPrice: product.price,
         subtotal: product.price * quantity,
+        round: 1,
+        status: "pending",
       }));
 
       const total = items.reduce((sum, i) => sum + i.subtotal, 0);

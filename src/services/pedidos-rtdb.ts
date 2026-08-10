@@ -10,6 +10,9 @@ import {
 } from "firebase/database";
 import { rtdb } from "./firebase-rtdb";
 
+// Estado de cada ítem/ronda dentro de un pedido de mesa
+export type OrderItemStatus = "pending" | "preparing" | "ready" | "served";
+
 export interface OrderItem {
   productId: string;
   name: string;
@@ -17,6 +20,10 @@ export interface OrderItem {
   unitPrice: number;
   subtotal: number;
   notes?: string;
+  // Ronda del ítem en mesa: 1 = pedido original, 2+ = adicionales
+  round?: number;
+  // Estado de preparación del ítem (avanza junto con el pedido de mesa)
+  status?: OrderItemStatus;
 }
 
 export type PaymentMethod = "efectivo" | "yape" | "tarjeta";
@@ -48,6 +55,10 @@ export interface Order {
   // Momento en que se sirvió el pedido en mesa
   servedAt?: string;
   paidAt?: string | null;
+  // Momento en que se liberó la mesa (deja de estar ocupada y sale de mesas activas)
+  releasedAt?: string;
+  // Monto acumulado ya cobrado de la mesa (el saldo pendiente es total - paidAmount)
+  paidAmount?: number;
   readyAt?: string;
   createdAt: string;
 }
@@ -113,6 +124,65 @@ export async function updateOrder(
   data: Partial<Order>,
 ): Promise<void> {
   await update(child(rootRef, id), data);
+}
+
+// Agrega ítems a un pedido existente como nueva ronda.
+// Los ítems nuevos quedan en "pending" y, si la orden ya estaba lista o servida,
+// vuelve a "pending" para que la nueva ronda pase por cocina de nuevo.
+export async function addItemsToOrder(
+  orderId: string,
+  items: Omit<OrderItem, "round" | "status">[],
+  extraTotal: number,
+): Promise<void> {
+  const snap = await get(child(rootRef, orderId));
+  if (!snap.exists()) throw new Error("Pedido no encontrado");
+  const order = snap.val() as Omit<Order, "id">;
+  const currentItems: OrderItem[] = order.items ?? [];
+  const nextRound =
+    currentItems.reduce((max, i) => Math.max(max, i.round ?? 1), 0) + 1;
+  const rounded = items.map((i) => ({
+    ...i,
+    round: nextRound,
+    status: "pending" as const,
+  }));
+  const wasDone =
+    order.status === "ready" || order.status === "delivered" || !!order.servedAt;
+  const patch: Record<string, any> = {
+    items: [...currentItems, ...rounded],
+    total: (order.total ?? 0) + extraTotal,
+  };
+  if (wasDone) patch.status = "pending";
+  await update(child(rootRef, orderId), patch);
+}
+
+// Avanza el estado de preparación de un pedido de mesa junto con sus ítems:
+// pending -> preparing -> ready -> served (los ítems de la ronda actual cambian juntos).
+export async function advanceMesaOrder(
+  orderId: string,
+  transition: "preparing" | "ready" | "served",
+): Promise<void> {
+  const snap = await get(child(rootRef, orderId));
+  if (!snap.exists()) throw new Error("Pedido no encontrado");
+  const order = snap.val() as Omit<Order, "id">;
+  const from: Record<string, OrderItemStatus> = {
+    preparing: "pending",
+    ready: "preparing",
+    served: "ready",
+  };
+  const src = from[transition];
+  const items = (order.items ?? []).map((it) =>
+    src && (it.status ?? "pending") === src
+      ? { ...it, status: transition }
+      : it,
+  );
+  const patch: Record<string, any> = { items };
+  if (transition === "served") {
+    patch.servedAt = new Date().toISOString();
+  } else {
+    patch.status = transition;
+    if (transition === "ready") patch.readyAt = new Date().toISOString();
+  }
+  await update(child(rootRef, orderId), patch);
 }
 
 // Suscripción en tiempo real a todos los pedidos

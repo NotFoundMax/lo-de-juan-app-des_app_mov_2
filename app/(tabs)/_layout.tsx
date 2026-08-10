@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   index: "home",
   pos: "cash",
+  mesas: "restaurant",
   pedidosCustomer: "receipt",
   pedidosAdmin: "list",
   capacitacion: "book",
@@ -93,6 +94,16 @@ export default function TabLayout() {
           title: "POS",
           href: isAdmin ? undefined : null,
           tabBarIcon: ({ focused }) => <TabIcon name="pos" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="mesas"
+        options={{
+          title: "Mesas",
+          href: isAdmin ? undefined : null,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="mesas" focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
