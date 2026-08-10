@@ -1,14 +1,14 @@
 import {
-    child,
-    get,
-    off,
-    onValue,
-    push,
-    ref,
-    remove,
-    runTransaction,
-    set,
-    update,
+  child,
+  get,
+  off,
+  onValue,
+  push,
+  ref,
+  remove,
+  runTransaction,
+  set,
+  update,
 } from "firebase/database";
 import { rtdb } from "./firebase-rtdb";
 
@@ -23,6 +23,7 @@ export interface Producto {
   minStock: number;
   active: boolean;
   createdAt: string;
+  deletedAt?: string;
 }
 
 const rootRef = ref(rtdb, "products");
@@ -35,20 +36,26 @@ function snapToArray(snap: any): Producto[] {
   }));
 }
 
-// Obtiene todos los productos ordenados
-export async function getProductos(): Promise<Producto[]> {
-  const snap = await get(rootRef);
-  return snapToArray(snap).sort(
-    (a, b) => b.createdAt?.localeCompare(a.createdAt ?? "") ?? 0,
-  );
+// Orden alfabético por nombre (case-insensitive)
+function sortByName(a: Producto, b: Producto): number {
+  return a.name
+    .trim()
+    .toLowerCase()
+    .localeCompare(b.name.trim().toLowerCase());
 }
 
-// Obtiene solo los productos activos
+// Obtiene todos los productos ordenados alfabéticamente
+export async function getProductos(): Promise<Producto[]> {
+  const snap = await get(rootRef);
+  return snapToArray(snap).sort(sortByName);
+}
+
+// Obtiene solo los productos activos (no eliminados)
 export async function getProductosActivos(): Promise<Producto[]> {
   const snap = await get(rootRef);
   return snapToArray(snap)
-    .filter((p) => p.active)
-    .sort((a, b) => b.createdAt?.localeCompare(a.createdAt ?? "") ?? 0);
+    .filter((p) => p.active && !p.deletedAt)
+    .sort(sortByName);
 }
 
 // Obtiene un producto por id
@@ -75,8 +82,18 @@ export async function updateProducto(
   await update(child(rootRef, id), data);
 }
 
-// Elimina un producto de RTDB
+// Elimina un producto (borrado lógico para poder restaurarlo)
 export async function deleteProducto(id: string): Promise<void> {
+  await update(child(rootRef, id), { deletedAt: new Date().toISOString() });
+}
+
+// Restaura un producto eliminado
+export async function restoreProducto(id: string): Promise<void> {
+  await update(child(rootRef, id), { deletedAt: null });
+}
+
+// Elimina un producto de forma definitiva (no se puede restaurar)
+export async function deleteProductoPermanente(id: string): Promise<void> {
   await remove(child(rootRef, id));
 }
 
@@ -97,9 +114,33 @@ export function subscribeToProductosActivos(
 ): () => void {
   const unsubscribe = onValue(rootRef, (snap) => {
     const productos = snapToArray(snap)
-      .filter((p) => p.active)
-      .sort((a, b) => b.createdAt?.localeCompare(a.createdAt ?? "") ?? 0);
+      .filter((p) => p.active && !p.deletedAt)
+      .sort(sortByName);
     callback(productos);
   });
   return () => off(rootRef, "value", unsubscribe);
+}
+
+// Suscripción en tiempo real a todos los productos
+export function subscribeToProductos(
+  callback: (productos: Producto[]) => void,
+): () => void {
+  const unsubscribe = onValue(rootRef, (snap) => {
+    const productos = snapToArray(snap).sort(sortByName);
+    callback(productos);
+  });
+  return () => off(rootRef, "value", unsubscribe);
+}
+
+// Verifica si ya existe un producto con el mismo nombre (case-insensitive)
+export async function existsByName(
+  name: string,
+  excludeId?: string,
+): Promise<boolean> {
+  const normalized = name.trim().toLowerCase();
+  const productos = await getProductos();
+  return productos.some(
+    (p) =>
+      p.id !== excludeId && p.name.trim().toLowerCase() === normalized,
+  );
 }
