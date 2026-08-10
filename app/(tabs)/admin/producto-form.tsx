@@ -2,14 +2,14 @@ import LoadingSpinner from "@/src/components/LoadingSpinner";
 import { Categoria, getCategorias } from "@/src/services/categorias-rtdb";
 import {
     createProducto,
+    existsByName,
     getProducto,
     updateProducto,
 } from "@/src/services/productos-rtdb";
-import { showError } from "@/src/utils/errorHandler";
+import { showAlert, showError } from "@/src/utils/errorHandler";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    Alert,
     ScrollView,
     Switch,
     Text,
@@ -34,6 +34,7 @@ export default function ProductoFormScreen() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<string[]>([]);
 
   // Carga los datos del producto para edición
   useEffect(() => {
@@ -65,19 +66,41 @@ export default function ProductoFormScreen() {
 
   // Guarda o actualiza el producto
   const handleSave = async () => {
-    if (!name || !price || !categoryId) {
-      Alert.alert("Error", "Nombre, precio y categoría son obligatorios");
+    const trimmedName = name.trim();
+    const trimmedPrice = price.trim();
+
+    const missing: string[] = [];
+    if (!trimmedName) missing.push("Nombre");
+    if (!trimmedPrice) missing.push("Precio");
+    if (!categoryId) missing.push("Categoría");
+    if (missing.length > 0) {
+      setFieldErrors(missing);
+      showAlert("Completa los campos", `Faltan: ${missing.join(", ")}`);
       return;
     }
+    setFieldErrors([]);
+
+    const duplicado = await existsByName(
+      trimmedName,
+      isEditing ? id : undefined,
+    );
+    if (duplicado) {
+      showAlert(
+        "Producto ya creado",
+        `Ya existe un producto llamado "${trimmedName}"`,
+      );
+      return;
+    }
+
     setSaving(true);
     try {
       const data = {
-        name,
-        description,
-        price: parseFloat(price),
+        name: trimmedName,
+        description: description.trim(),
+        price: parseFloat(trimmedPrice),
         stock: parseInt(stock) || 0,
         minStock: parseInt(minStock) || 0,
-        imageUrl,
+        imageUrl: imageUrl.trim(),
         categoryId,
         active,
         createdAt: new Date().toISOString(),
@@ -101,13 +124,21 @@ export default function ProductoFormScreen() {
 
   return (
     <ScrollView className="flex-1 bg-surface px-4 pt-4">
+      <Text className="text-caption text-text-muted mb-1">
+        Nombre del producto
+      </Text>
       <TextInput
-        className="bg-light-gray px-4 py-3 rounded-xl mb-3 text-text-primary"
+        className={`bg-light-gray px-4 py-3 rounded-xl mb-3 text-text-primary ${
+          fieldErrors.includes("Nombre") ? "border border-[#dc2626]" : ""
+        }`}
         placeholder="Nombre del producto"
         placeholderTextColor="#805140"
         value={name}
         onChangeText={setName}
       />
+      <Text className="text-caption text-text-muted mb-1">
+        Descripción (opcional)
+      </Text>
       <TextInput
         className="bg-light-gray px-4 py-3 rounded-xl mb-3 text-text-primary"
         placeholder="Descripción"
@@ -116,8 +147,11 @@ export default function ProductoFormScreen() {
         onChangeText={setDescription}
         multiline
       />
+      <Text className="text-caption text-text-muted mb-1">Precio (S/.)</Text>
       <TextInput
-        className="bg-light-gray px-4 py-3 rounded-xl mb-3 text-text-primary"
+        className={`bg-light-gray px-4 py-3 rounded-xl mb-3 text-text-primary ${
+          fieldErrors.includes("Precio") ? "border border-[#dc2626]" : ""
+        }`}
         placeholder="Precio (S/.)"
         placeholderTextColor="#805140"
         value={price}
@@ -125,32 +159,48 @@ export default function ProductoFormScreen() {
         keyboardType="decimal-pad"
       />
       <View className="flex-row gap-3 mb-3">
-        <TextInput
-          className="flex-1 bg-light-gray px-4 py-3 rounded-xl text-text-primary"
-          placeholder="Cantidad en inventario"
-          placeholderTextColor="#805140"
-          value={stock}
-          onChangeText={setStock}
-          keyboardType="number-pad"
-        />
-        <TextInput
-          className="flex-1 bg-light-gray px-4 py-3 rounded-xl text-text-primary"
-          placeholder="Cantidad mínima"
-          placeholderTextColor="#805140"
-          value={minStock}
-          onChangeText={setMinStock}
-          keyboardType="number-pad"
-        />
+        <View className="flex-1">
+          <Text className="text-caption text-text-muted mb-1">
+            Cantidad en inventario (opcional)
+          </Text>
+          <TextInput
+            className="bg-light-gray px-4 py-3 rounded-xl text-text-primary"
+            placeholder="Inventario"
+            placeholderTextColor="#805140"
+            value={stock}
+            onChangeText={setStock}
+            keyboardType="number-pad"
+          />
+        </View>
+        <View className="flex-1">
+          <Text className="text-caption text-text-muted mb-1">
+            Cantidad mínima (opcional)
+          </Text>
+          <TextInput
+            className="bg-light-gray px-4 py-3 rounded-xl text-text-primary"
+            placeholder="Mínimo"
+            placeholderTextColor="#805140"
+            value={minStock}
+            onChangeText={setMinStock}
+            keyboardType="number-pad"
+          />
+        </View>
       </View>
+      <Text className="text-caption text-text-muted mb-1">
+        URL de imagen (opcional)
+      </Text>
       <TextInput
         className="bg-light-gray px-4 py-3 rounded-xl mb-3 text-text-primary"
-        placeholder="URL de imagen (opcional)"
+        placeholder="https://ejemplo.com/imagen.jpg"
         placeholderTextColor="#805140"
         value={imageUrl}
         onChangeText={setImageUrl}
       />
       <Text className="text-caption-bold text-text-primary mb-2">
         Categoría
+        {fieldErrors.includes("Categoría") ? (
+          <Text className="text-caption text-[#dc2626]"> (requerida)</Text>
+        ) : null}
       </Text>
       <View className="flex-row flex-wrap gap-2 mb-4">
         {categorias.map((cat) => (
