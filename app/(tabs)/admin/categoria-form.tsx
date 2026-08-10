@@ -4,11 +4,10 @@ import {
     getCategoria,
     updateCategoria,
 } from "@/src/services/categorias-rtdb";
-import { showError } from "@/src/utils/errorHandler";
+import { showAlert, showError } from "@/src/utils/errorHandler";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    Alert,
     ScrollView,
     Text,
     TextInput,
@@ -51,7 +50,7 @@ export default function CategoriaFormScreen() {
   // Guarda o actualiza la categoría
   const handleSave = async () => {
     if (!name || !order) {
-      Alert.alert("Error", "Nombre y orden son obligatorios");
+      showAlert("Error", "Nombre y orden son obligatorios");
       return;
     }
     setSaving(true);

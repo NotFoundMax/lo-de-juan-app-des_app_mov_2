@@ -6,11 +6,10 @@ import {
     MaterialType,
     updateMaterial,
 } from "@/src/services/capacitacion-rtdb";
-import { showError } from "@/src/utils/errorHandler";
+import { showAlert, showError } from "@/src/utils/errorHandler";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    Alert,
     ScrollView,
     Switch,
     Text,
@@ -64,7 +63,7 @@ export default function CapacitacionFormScreen() {
   // Guarda o actualiza el material
   const handleSave = async () => {
     if (!title || !description) {
-      Alert.alert("Error", "Título y descripción son obligatorios");
+      showAlert("Error", "Título y descripción son obligatorios");
       return;
     }
     setSaving(true);

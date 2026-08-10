@@ -1,8 +1,8 @@
 import { signUp } from "@/src/services/auth-rtdb";
-import { showAuthError } from "@/src/utils/errorHandler";
+import { showAlert, showAuthError } from "@/src/utils/errorHandler";
 import { Link, router } from "expo-router";
 import { useState } from "react";
-import { Alert, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
 
 // Formulario de registro de usuario
 export default function RegisterScreen() {
@@ -14,11 +14,11 @@ export default function RegisterScreen() {
   // Procesa el registro del usuario
   const handleRegister = async () => {
     if (!name || !email || !password) {
-      Alert.alert("Error", "Completa todos los campos");
+      showAlert("Error", "Completa todos los campos");
       return;
     }
     if (password.length < 6) {
-      Alert.alert("Error", "La contraseña debe tener al menos 6 caracteres");
+      showAlert("Error", "La contraseña debe tener al menos 6 caracteres");
       return;
     }
     setLoading(true);

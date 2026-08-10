@@ -3,13 +3,12 @@ import {
     signInWithGoogle,
     signInWithGoogleWeb,
 } from "@/src/services/auth-rtdb";
-import { showAuthError } from "@/src/utils/errorHandler";
+import { showAlert, showAuthError } from "@/src/utils/errorHandler";
 import * as Google from "expo-auth-session/providers/google";
 import { Link, router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useRef, useState } from "react";
 import {
-    Alert,
     KeyboardAvoidingView,
     Platform,
     Text,
@@ -46,7 +45,7 @@ export default function LoginScreen() {
     if (_response.type === "success") {
       const id_token = _response.params?.id_token;
       if (!id_token) {
-        Alert.alert("Error", "No se recibió el token de Google.");
+        showAlert("Error", "No se recibió el token de Google.");
         return;
       }
       setGoogleLoading(true);
@@ -55,7 +54,7 @@ export default function LoginScreen() {
         .catch((error) => showAuthError(error, "google-login"))
         .finally(() => setGoogleLoading(false));
     } else if (_response.type === "error") {
-      Alert.alert("Error", "No se pudo iniciar sesión con Google.");
+      showAlert("Error", "No se pudo iniciar sesión con Google.");
     }
   }, [_response]);
 
@@ -81,7 +80,7 @@ export default function LoginScreen() {
   // Procesa el inicio de sesión con email/password
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Completa todos los campos");
+      showAlert("Error", "Completa todos los campos");
       return;
     }
     setLoading(true);

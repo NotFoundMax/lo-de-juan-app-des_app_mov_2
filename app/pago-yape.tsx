@@ -3,6 +3,7 @@ import { useCarrito } from "@/src/contexts/CarritoContext";
 import { useDelivery } from "@/src/contexts/DeliveryContext";
 import { createOrder } from "@/src/services/pedidos-rtdb";
 import { saveUserAddress } from "@/src/services/usuarios-rtdb";
+import { showAlert } from "@/src/utils/errorHandler";
 import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
 import { router } from "expo-router";
@@ -10,7 +11,6 @@ import * as Sharing from "expo-sharing";
 import { useRef, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     Image,
     Platform,
     Text,
@@ -53,7 +53,7 @@ export default function YapeScreen() {
     } catch {
       if (e?.message?.includes("User did not share")) return;
       console.error("Error guardando QR:", e);
-      Alert.alert("Error", "No se pudo compartir la imagen.");
+      showAlert("Error", "No se pudo compartir la imagen.");
     } finally {
       setSaving(false);
     }
@@ -71,11 +71,11 @@ export default function YapeScreen() {
   // Procesa el pedido tras confirmar el pago con Yape
   const handleYaPague = async () => {
     if (!pending) {
-      Alert.alert("Error", "Faltan datos de entrega. Vuelve al carrito.");
+      showAlert("Error", "Faltan datos de entrega. Vuelve al carrito.");
       return;
     }
     if (!payerName.trim()) {
-      Alert.alert(
+      showAlert(
         "Ingresa tu nombre",
         "Escribe tu nombre y apellido para que el local pueda confirmar tu pago.",
       );
@@ -128,7 +128,7 @@ export default function YapeScreen() {
       router.replace({ pathname: "/pago-pendiente", params: { orderId } });
     } catch (e) {
       console.error("Error creando pedido:", e);
-      Alert.alert("Error", "No se pudo procesar el pago. Intenta de nuevo.");
+      showAlert("Error", "No se pudo procesar el pago. Intenta de nuevo.");
     } finally {
       setProcessing(false);
     }

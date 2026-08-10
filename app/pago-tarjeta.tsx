@@ -3,12 +3,11 @@ import { useCarrito } from "@/src/contexts/CarritoContext";
 import { useDelivery } from "@/src/contexts/DeliveryContext";
 import { createOrder } from "@/src/services/pedidos-rtdb";
 import { saveUserAddress } from "@/src/services/usuarios-rtdb";
+import { showAlert } from "@/src/utils/errorHandler";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
-    Image,
     Platform,
     ScrollView,
     Text,
@@ -54,7 +53,7 @@ export default function TarjetaScreen() {
   // Valida y procesa el pago con tarjeta
   const handlePagar = async () => {
     if (!pending) {
-      Alert.alert("Error", "Faltan datos de entrega. Vuelve al carrito.");
+      showAlert("Error", "Faltan datos de entrega. Vuelve al carrito.");
       return;
     }
     if (
@@ -63,16 +62,16 @@ export default function TarjetaScreen() {
       !cvv.trim() ||
       !cardName.trim()
     ) {
-      Alert.alert("Completa todos los campos de la tarjeta");
+      showAlert("Completa todos los campos de la tarjeta");
       return;
     }
     const digits = cardNumber.replace(/\s/g, "");
     if (digits.length < 16) {
-      Alert.alert("Número de tarjeta inválido");
+      showAlert("Número de tarjeta inválido");
       return;
     }
     if (cvv.length < 3) {
-      Alert.alert("Código de seguridad inválido");
+      showAlert("Código de seguridad inválido");
       return;
     }
 
@@ -125,7 +124,7 @@ export default function TarjetaScreen() {
       router.replace("/pago-exitoso");
     } catch (e) {
       console.error("Error creando pedido:", e);
-      Alert.alert("Error", "No se pudo procesar el pago. Intenta de nuevo.");
+      showAlert("Error", "No se pudo procesar el pago. Intenta de nuevo.");
     } finally {
       setProcessing(false);
     }

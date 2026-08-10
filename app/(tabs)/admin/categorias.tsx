@@ -4,12 +4,11 @@ import {
     deleteCategoria,
     getCategorias,
 } from "@/src/services/categorias-rtdb";
-import { showError } from "@/src/utils/errorHandler";
+import { showConfirm, showError } from "@/src/utils/errorHandler";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    Alert,
     FlatList,
     Image,
     RefreshControl,
@@ -44,17 +43,16 @@ export default function CategoriasScreen() {
 
   // Confirma la eliminación de la categoría
   const handleDelete = (id: string, name: string) => {
-    Alert.alert("Eliminar", `¿Eliminar categoría "${name}"?`, [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Eliminar",
-        style: "destructive",
-        onPress: async () => {
-          await deleteCategoria(id);
-          load();
-        },
+    showConfirm(
+      "Eliminar",
+      `¿Eliminar categoría "${name}"?`,
+      async () => {
+        await deleteCategoria(id);
+        load();
       },
-    ]);
+      undefined,
+      { confirmLabel: "Eliminar", destructive: true },
+    );
   };
 
   if (loading) {

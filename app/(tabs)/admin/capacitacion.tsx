@@ -5,11 +5,11 @@ import {
     Material,
     MATERIAL_CONFIG,
 } from "@/src/services/capacitacion-rtdb";
+import { showConfirm } from "@/src/utils/errorHandler";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    Alert,
     FlatList,
     Linking,
     RefreshControl,
@@ -44,17 +44,16 @@ export default function AdminCapacitacionScreen() {
 
   // Confirma la eliminación del material
   const handleDelete = (id: string, title: string) => {
-    Alert.alert("Eliminar", `¿Eliminar "${title}"?`, [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Eliminar",
-        style: "destructive",
-        onPress: async () => {
-          await deleteMaterial(id);
-          load();
-        },
+    showConfirm(
+      "Eliminar",
+      `¿Eliminar "${title}"?`,
+      async () => {
+        await deleteMaterial(id);
+        load();
       },
-    ]);
+      undefined,
+      { confirmLabel: "Eliminar", destructive: true },
+    );
   };
 
   if (loading) {

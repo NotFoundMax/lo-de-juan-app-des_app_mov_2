@@ -17,9 +17,9 @@ import { createOrder, subscribeToOrders } from "@/src/services/pedidos-rtdb";
 import type { Producto } from "@/src/services/productos-rtdb";
 import { descontarStock, subscribeToProductosActivos } from "@/src/services/productos-rtdb";
 import { isMesaOcupada } from "@/src/utils/mesa-items";
+import { showAlert, showConfirm } from "@/src/utils/errorHandler";
 import { useEffect, useState } from "react";
 import {
-    Alert,
     FlatList,
     KeyboardAvoidingView,
     Platform,
@@ -74,7 +74,7 @@ export default function PosScreen() {
       if (existing) {
         const newQty = existing.quantity + 1;
         if (newQty > product.stock) {
-          Alert.alert(
+          showAlert(
             "Stock insuficiente",
             `Solo hay ${product.stock} unidades disponibles de ${product.name}`,
           );
@@ -86,7 +86,7 @@ export default function PosScreen() {
       }
 
       if (product.stock <= 0) {
-        Alert.alert("Sin stock", `${product.name} no tiene stock disponible`);
+        showAlert("Sin stock", `${product.name} no tiene stock disponible`);
         return prev;
       }
 
@@ -100,7 +100,7 @@ export default function PosScreen() {
       const item = prev.find((i) => i.product.id === productId);
       if (!item) return prev;
       if (item.quantity + 1 > item.product.stock) {
-        Alert.alert(
+        showAlert(
           "Stock insuficiente",
           `Solo hay ${item.product.stock} unidades disponibles`,
         );
@@ -138,23 +138,28 @@ export default function PosScreen() {
 
     // Mostrador: el nombre del cliente es obligatorio
     if (deliveryMode === null && !customerName.trim()) {
-      Alert.alert(
+      showAlert(
         "Nombre requerido",
         "Ingresa el nombre del cliente para pedidos de mostrador.",
       );
       return;
     }
 
+    // Mesa: el número de mesa es obligatorio
+    if (deliveryMode === "mesa" && !tableNumber.trim()) {
+      showAlert(
+        "Número de mesa requerido",
+        "Ingresa el número de mesa para pedidos de mesa.",
+      );
+      return;
+    }
+
     // Mesa: no se puede usar una mesa ocupada sin liberar
-    if (deliveryMode === "mesa" && tableNumber.trim()) {
+    if (deliveryMode === "mesa") {
       const mesa = tableNumber.trim();
       if (isMesaOcupada(orders, mesa)) {
         const message = `Mesa ${mesa} está ocupada. Libérala desde el tab Mesas para poder usarla.`;
-        if (Platform.OS === "web") {
-          window.alert(message);
-        } else {
-          Alert.alert("Mesa ocupada", message);
-        }
+        showAlert("Mesa ocupada", message);
         return;
       }
     }
@@ -207,19 +212,15 @@ export default function PosScreen() {
         ? `Pedido creado y cobrado por S/. ${total.toFixed(2)}`
         : "Pedido registrado sin cobro. Se cobrará al cierre de la mesa.";
 
-      if (Platform.OS === "web") {
-        window.alert(`Pedido realizado\n\n${successMessage}`);
-        router.replace("/(tabs)/pedidosAdmin");
-      } else {
-        Alert.alert("Pedido realizado", successMessage, [
-          {
-            text: "OK",
-            onPress: () => router.replace("/(tabs)/pedidosAdmin"),
-          },
-        ]);
-      }
+      showConfirm(
+        "Pedido realizado",
+        successMessage,
+        () => router.replace("/(tabs)/pedidosAdmin"),
+        undefined,
+        { confirmLabel: "OK" },
+      );
     } catch {
-      Alert.alert("Error", "No se pudo completar la venta. Intenta de nuevo.");
+      showAlert("Error", "No se pudo completar la venta. Intenta de nuevo.");
     } finally {
       setProcessing(false);
     }

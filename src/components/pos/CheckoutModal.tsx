@@ -130,7 +130,7 @@ export default function CheckoutModal({
             {deliveryMode === "mesa" && (
               <TextInput
                 className="border border-border rounded-xl px-4 py-3 text-body text-text-primary mb-4"
-                placeholder="N° de mesa"
+                placeholder="N° de mesa (obligatorio)"
                 placeholderTextColor="#9e9e9e"
                 value={tableNumber}
                 onChangeText={onTableNumberChange}

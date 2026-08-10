@@ -27,11 +27,10 @@ import {
   paidAmountOf,
   ROUND_STATUS,
 } from "@/src/utils/mesa-items";
+import { showAlert } from "@/src/utils/errorHandler";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   FlatList,
-  Platform,
   Text,
   TouchableOpacity,
   View,
@@ -138,7 +137,7 @@ export default function MesasScreen() {
         await updateOrder(order.id, { servedAt: new Date().toISOString() });
       }
     } catch {
-      Alert.alert("Error", "No se pudo marcar el pedido como servido.");
+      showAlert("Error", "No se pudo marcar el pedido como servido.");
     }
   };
 
@@ -147,13 +146,9 @@ export default function MesasScreen() {
     try {
       await updateOrder(order.id, { releasedAt: new Date().toISOString() });
       const message = `Mesa ${order.tableNumber} liberada. Ya puede ser usada en el POS.`;
-      if (Platform.OS === "web") {
-        window.alert(`Mesa liberada\n\n${message}`);
-      } else {
-        Alert.alert("Mesa liberada", message);
-      }
+      showAlert("Mesa liberada", message);
     } catch {
-      Alert.alert("Error", "No se pudo liberar la mesa.");
+      showAlert("Error", "No se pudo liberar la mesa.");
     }
   };
 
@@ -182,13 +177,9 @@ export default function MesasScreen() {
       );
       setAddModalOrder(null);
       const message = `Se agregaron productos a Mesa ${order.tableNumber} por S/. ${extraTotal.toFixed(2)}`;
-      if (Platform.OS === "web") {
-        window.alert(`Pedido actualizado\n\n${message}`);
-      } else {
-        Alert.alert("Pedido actualizado", message);
-      }
+      showAlert("Pedido actualizado", message);
     } catch {
-      Alert.alert("Error", "No se pudieron agregar los productos.");
+      showAlert("Error", "No se pudieron agregar los productos.");
     } finally {
       setProcessingAdd(false);
     }
@@ -219,13 +210,9 @@ export default function MesasScreen() {
         paymentMethod === "yape"
           ? "Pago con Yape registrado. Confírmalo en Pedidos cuando llegue."
           : `Mesa cobrada por S/. ${outstanding.toFixed(2)}`;
-      if (Platform.OS === "web") {
-        window.alert(`Cobro realizado\n\n${message}`);
-      } else {
-        Alert.alert("Cobro realizado", message);
-      }
+      showAlert("Cobro realizado", message);
     } catch {
-      Alert.alert("Error", "No se pudo cobrar la mesa.");
+      showAlert("Error", "No se pudo cobrar la mesa.");
     } finally {
       setProcessingCharge(false);
     }

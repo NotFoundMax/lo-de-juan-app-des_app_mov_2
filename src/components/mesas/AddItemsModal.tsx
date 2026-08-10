@@ -3,10 +3,10 @@ import ProductCard from "@/src/components/pos/ProductCard";
 import type { CartItemData } from "@/src/components/pos/CartItem";
 import type { Categoria } from "@/src/services/categorias-rtdb";
 import type { Producto } from "@/src/services/productos-rtdb";
+import { showAlert } from "@/src/utils/errorHandler";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   ScrollView,
@@ -60,7 +60,7 @@ export default function AddItemsModal({
       if (existing) {
         const newQty = existing.quantity + 1;
         if (newQty > product.stock) {
-          Alert.alert(
+          showAlert(
             "Stock insuficiente",
             `Solo hay ${product.stock} unidades disponibles de ${product.name}`,
           );
@@ -71,7 +71,7 @@ export default function AddItemsModal({
         );
       }
       if (product.stock <= 0) {
-        Alert.alert("Sin stock", `${product.name} no tiene stock disponible`);
+        showAlert("Sin stock", `${product.name} no tiene stock disponible`);
         return prev;
       }
       return [...prev, { product, quantity: 1 }];
@@ -83,7 +83,7 @@ export default function AddItemsModal({
       const item = prev.find((i) => i.product.id === productId);
       if (!item) return prev;
       if (item.quantity + 1 > item.product.stock) {
-        Alert.alert(
+        showAlert(
           "Stock insuficiente",
           `Solo hay ${item.product.stock} unidades disponibles`,
         );

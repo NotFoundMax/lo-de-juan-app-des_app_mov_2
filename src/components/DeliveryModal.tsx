@@ -9,7 +9,6 @@ import {
 } from "@/src/services/usuarios-rtdb";
 import { useEffect, useState } from "react";
 import {
-    Alert,
     Modal,
     Platform,
     ScrollView,
@@ -20,6 +19,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MapWebView from "./MapWebView";
+import { showConfirm } from "@/src/utils/errorHandler";
 
 // ─── Public types ──────────────────────────────────────────
 
@@ -333,19 +333,18 @@ function StepDelivery({
 
   // Elimina una dirección guardada
   const handleDelete = (addr: UserAddress) => {
-    Alert.alert("Eliminar dirección", `¿Eliminar "${addr.label}"?`, [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Eliminar",
-        style: "destructive",
-        onPress: async () => {
-          if (!user?.uid) return;
-          await deleteAddress(user.uid, addr.label);
-          if (selectedIdx !== null) setSelectedIdx(null);
-          loadAddresses();
-        },
+    showConfirm(
+      "Eliminar dirección",
+      `¿Eliminar "${addr.label}"?`,
+      async () => {
+        if (!user?.uid) return;
+        await deleteAddress(user.uid, addr.label);
+        if (selectedIdx !== null) setSelectedIdx(null);
+        loadAddresses();
       },
-    ]);
+      undefined,
+      { confirmLabel: "Eliminar", destructive: true },
+    );
   };
 
   return (
