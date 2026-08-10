@@ -271,6 +271,18 @@ function AdminOrderCard({
                 </Text>
               </View>
             )}
+            <View
+              className="flex-row items-center px-2 py-0.5 rounded-full mr-2"
+              style={{ backgroundColor: "#f3f4f6" }}
+            >
+              <Text className="text-small mr-1">💳</Text>
+              <Text
+                className="text-small font-bold"
+                style={{ color: "#374151" }}
+              >
+                {PAYMENT_LABELS[order.paymentMethod] ?? order.paymentMethod}
+              </Text>
+            </View>
             <Text className="text-small text-text-muted">
               {order.items.length} producto{order.items.length !== 1 ? "s" : ""}
             </Text>
@@ -365,9 +377,6 @@ function AdminOrderCard({
           <Separator />
 
           <View className="pt-1">
-            <Text className="text-body text-text-secondary">
-              💳 {PAYMENT_LABELS[order.paymentMethod] ?? order.paymentMethod}
-            </Text>
             {order.deliveryMode === "delivery" && order.deliveryAddress && (
               <Text className="text-body text-text-muted mt-1">
                 📍 {order.deliveryAddress}
@@ -376,11 +385,6 @@ function AdminOrderCard({
             {order.deliveryMode === "recoger" && sucursal && (
               <Text className="text-body text-text-muted mt-1">
                 🏪 {sucursal.address}
-              </Text>
-            )}
-            {order.deliveryMode === "mesa" && order.tableNumber && (
-              <Text className="text-body text-text-muted mt-1">
-                🪑 Mesa {order.tableNumber}
               </Text>
             )}
           </View>
