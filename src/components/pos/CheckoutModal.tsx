@@ -52,6 +52,7 @@ export default function CheckoutModal({
 }: Props) {
   const isMostrador = deliveryMode === null;
   const nameRequired = isMostrador && !customerName.trim();
+  const tableRequired = deliveryMode === "mesa" && !tableNumber.trim();
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -128,15 +129,24 @@ export default function CheckoutModal({
             </View>
 
             {deliveryMode === "mesa" && (
-              <TextInput
-                className="border border-border rounded-xl px-4 py-3 text-body text-text-primary mb-4"
-                placeholder="N° de mesa (obligatorio)"
-                placeholderTextColor="#9e9e9e"
-                value={tableNumber}
-                onChangeText={onTableNumberChange}
-                keyboardType="number-pad"
-                editable={!processing}
-              />
+              <>
+                <TextInput
+                  className={`border rounded-xl px-4 py-3 text-body text-text-primary mb-1 ${
+                    tableRequired ? "border-error" : "border-border"
+                  }`}
+                  placeholder="N° de mesa (obligatorio)"
+                  placeholderTextColor="#9e9e9e"
+                  value={tableNumber}
+                  onChangeText={onTableNumberChange}
+                  keyboardType="number-pad"
+                  editable={!processing}
+                />
+                {tableRequired && (
+                  <Text className="text-small text-error mb-4">
+                    Ingresa el número de mesa para pedidos de mesa
+                  </Text>
+                )}
+              </>
             )}
 
             <Text className="text-caption text-text-muted mb-2">Resumen</Text>
@@ -182,27 +192,27 @@ export default function CheckoutModal({
               <View className="flex-row gap-2">
                 <TouchableOpacity
                   onPress={onConfirmPedido}
-                  disabled={processing}
-                  className="flex-1 border border-primary py-3 rounded-xl items-center"
-                  style={{ opacity: processing ? 0.5 : 1 }}
-                >
-                  <Text className="text-body-bold text-primary">
-                    Confirmar pedido
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={onConfirm}
-                  disabled={processing}
+                  disabled={processing || tableRequired}
                   className="flex-1 bg-primary py-3 rounded-xl items-center"
-                  style={{ opacity: processing ? 0.5 : 1 }}
+                  style={{ opacity: processing || tableRequired ? 0.5 : 1 }}
                 >
                   {processing ? (
                     <ActivityIndicator color="white" />
                   ) : (
                     <Text className="text-body-bold text-white">
-                      Confirmar y cobrar
+                      Confirmar pedido
                     </Text>
                   )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={onConfirm}
+                  disabled={processing || tableRequired}
+                  className="flex-1 border border-primary py-3 rounded-xl items-center"
+                  style={{ opacity: processing || tableRequired ? 0.5 : 1 }}
+                >
+                  <Text className="text-body-bold text-primary">
+                    Confirmar y cobrar
+                  </Text>
                 </TouchableOpacity>
               </View>
             ) : (
