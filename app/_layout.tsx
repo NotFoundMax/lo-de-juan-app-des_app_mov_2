@@ -2,6 +2,7 @@ import { AuthProvider } from "@/src/contexts/AuthContext";
 import { CarritoProvider } from "@/src/contexts/CarritoContext";
 import { ChatProvider } from "@/src/contexts/ChatContext";
 import { DeliveryProvider } from "@/src/contexts/DeliveryContext";
+import DialogProvider from "@/src/components/dialogs/DialogProvider";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
@@ -14,34 +15,36 @@ export const unstable_settings = {
 // Layout raíz con los providers
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <CarritoProvider>
-        <ChatProvider>
-          <DeliveryProvider>
-            <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="carrito" options={{ presentation: "modal" }} />
-            <Stack.Screen name="pago-yape" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="pago-tarjeta"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="pago-exitoso"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="pago-pendiente"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="chat" options={{ headerShown: false }} />
-          </Stack>
-          <StatusBar style="auto" />
-          </DeliveryProvider>
-        </ChatProvider>
-      </CarritoProvider>
-    </AuthProvider>
+    <DialogProvider>
+      <AuthProvider>
+        <CarritoProvider>
+          <ChatProvider>
+            <DeliveryProvider>
+              <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="carrito" options={{ presentation: "modal" }} />
+              <Stack.Screen name="pago-yape" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="pago-tarjeta"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="pago-exitoso"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="pago-pendiente"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen name="chat" options={{ headerShown: false }} />
+            </Stack>
+            <StatusBar style="auto" />
+            </DeliveryProvider>
+          </ChatProvider>
+        </CarritoProvider>
+      </AuthProvider>
+    </DialogProvider>
   );
 }
