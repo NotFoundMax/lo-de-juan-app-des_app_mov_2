@@ -36,7 +36,13 @@ export interface Order {
   customerName: string;
   items: OrderItem[];
   total: number;
-  status: "pending" | "preparing" | "ready" | "delivered" | "cancelled";
+  status:
+    | "pending"
+    | "preparing"
+    | "ready"
+    | "on_the_way"
+    | "delivered"
+    | "cancelled";
   type: "pos" | "online";
   paymentMethod: PaymentMethod;
   deliveryMode: DeliveryMode;
@@ -60,6 +66,8 @@ export interface Order {
   // Monto acumulado ya cobrado de la mesa (el saldo pendiente es total - paidAmount)
   paidAmount?: number;
   readyAt?: string;
+  // El chat se cierra manualmente (solo lectura) cuando el admin lo decide
+  chatClosed?: boolean;
   createdAt: string;
 }
 

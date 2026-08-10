@@ -7,6 +7,7 @@ export const STATUS_CONFIG: Record<
   pending: { label: "Pendiente", bg: "#fff8e1", text: "#e0a003" },
   preparing: { label: "Preparando", bg: "#e3f2fd", text: "#1976d2" },
   ready: { label: "Listo", bg: "#e8f5e9", text: "#43A047" },
+  on_the_way: { label: "En camino", bg: "#ede7f6", text: "#7b1fa2" },
   delivered: { label: "Entregado", bg: "#f5f5f5", text: "#9e9e9e" },
   cancelled: { label: "Cancelado", bg: "#ffebee", text: "#f84d3f" },
 };

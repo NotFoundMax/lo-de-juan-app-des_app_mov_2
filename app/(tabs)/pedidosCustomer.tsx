@@ -19,14 +19,13 @@ import {
 } from "@/src/services/pedidos-rtdb";
 import { useEffect, useState } from "react";
 import {
-    Alert,
     FlatList,
-    Platform,
     RefreshControl,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
+import { showAlert, showConfirm } from "@/src/utils/errorHandler";
 
 // Tarjeta de pedido del cliente con detalle expandible
 function OrderCard({
@@ -52,7 +51,9 @@ function OrderCard({
   return (
     <TouchableOpacity
       onPress={() => setExpanded(!expanded)}
-      className="bg-surface-hover rounded-xl p-4 mb-3 border border-border active:opacity-80"
+      className={`bg-surface-hover rounded-xl p-4 mb-3 border border-border active:opacity-80 ${
+        order.status === "delivered" ? "opacity-50" : ""
+      }`}
     >
       <View className="flex-row justify-between items-start mb-2">
         <View className="flex-1">
@@ -70,7 +71,11 @@ function OrderCard({
             </Text>
           </View>
           <Text className="text-body-bold text-text-primary mt-0.5">
-            {order.items.length} producto{order.items.length !== 1 ? "s" : ""}
+            {order.items.reduce((acc, i) => acc + (i.quantity || 0), 0)}{" "}
+            producto
+            {order.items.reduce((acc, i) => acc + (i.quantity || 0), 0) !== 1
+              ? "s"
+              : ""}
           </Text>
           {order.deliveryMode && DELIVERY_CONFIG[order.deliveryMode] && (
             <View className="flex-row items-center mt-1">
@@ -98,13 +103,43 @@ function OrderCard({
             </View>
           )}
         </View>
-        <View
-          className="px-3 py-1 rounded-full"
-          style={{ backgroundColor: statusChip.bg }}
-        >
-          <Text className="text-small font-bold" style={{ color: statusChip.text }}>
-            {statusChip.label}
-          </Text>
+        <View className="flex-row items-center">
+          {order.deliveryMode === "delivery" &&
+            order.status !== "cancelled" &&
+            !order.chatClosed && (
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: "/chat",
+                    params: {
+                      orderId: order.id,
+                      orderName:
+                        order.ticketNumber ||
+                        order.id.slice(0, 8).toUpperCase(),
+                    },
+                  })
+                }
+                className="flex-row items-center px-2 py-0.5 rounded-full mr-2"
+                style={{
+                  backgroundColor: chatUnread > 0 ? "#fde8e8" : "#f3f4f6",
+                }}
+              >
+                <Text className="text-small mr-1">💬</Text>
+                {chatUnread > 0 && (
+                  <Text className="text-small font-bold text-primary">
+                    {chatUnread > 99 ? "99+" : chatUnread}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+          <View
+            className="px-3 py-1 rounded-full"
+            style={{ backgroundColor: statusChip.bg }}
+          >
+            <Text className="text-small font-bold" style={{ color: statusChip.text }}>
+              {statusChip.label}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -206,20 +241,17 @@ export default function PedidosCustomerScreen() {
           status: "cancelled",
         });
       } catch {
-        Alert.alert("Error", "No se pudo cancelar el pedido.");
+        showAlert("Error", "No se pudo cancelar el pedido.");
       }
     };
 
-    if (Platform.OS === "web") {
-      if (window.confirm("¿Cancelar este pedido? No se puede deshacer.")) {
-        doCancel();
-      }
-    } else {
-      Alert.alert("Cancelar pedido", "¿Estás seguro? No se puede deshacer.", [
-        { text: "No", style: "cancel" },
-        { text: "Sí, cancelar", style: "destructive", onPress: doCancel },
-      ]);
-    }
+    showConfirm(
+      "Cancelar pedido",
+      "¿Estás seguro? No se puede deshacer.",
+      doCancel,
+      undefined,
+      { confirmLabel: "Cancelar", destructive: true },
+    );
   };
 
   // Suscripción en tiempo real a los pedidos del cliente

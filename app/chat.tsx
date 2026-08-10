@@ -16,7 +16,8 @@ import {
   markChatRead,
   sendMessage,
 } from "@/src/services/chat-rtdb";
-import { Order, subscribeToOrderById } from "@/src/services/pedidos-rtdb";
+import { Order, subscribeToOrderById, updateOrder } from "@/src/services/pedidos-rtdb";
+import { showAlert, showConfirm } from "@/src/utils/errorHandler";
 
 export default function ChatScreen() {
   const { orderId, orderName } = useLocalSearchParams<{
@@ -53,17 +54,46 @@ export default function ChatScreen() {
     }, 200);
   }, [messages]);
 
-  // El chat solo es para delivery y queda de solo lectura al cerrarse el pedido
+  // El chat es solo para delivery; se cierra manualmente (chatClosed) o al cancelar
   const readOnly = order
     ? order.deliveryMode !== "delivery" ||
-      order.status === "delivered" ||
+      order.chatClosed === true ||
       order.status === "cancelled"
     : false;
   const lockMessage = order
     ? order.deliveryMode !== "delivery"
       ? "El chat solo está disponible para pedidos a domicilio."
-      : "Este pedido ya se cerró. Chat en modo lectura."
+      : order.status === "cancelled"
+        ? "Este pedido fue cancelado. Chat en modo lectura."
+        : order.chatClosed === true
+          ? "Este pedido se cerró. Chat en modo lectura."
+          : null
     : null;
+
+  // El admin/empleado cierra el chat manualmente cuando el pedido está entregado
+  const canCloseChat =
+    !!order &&
+    order.deliveryMode === "delivery" &&
+    order.status === "delivered" &&
+    order.chatClosed !== true &&
+    role !== "customer";
+
+  const handleCloseChat = () => {
+    if (!orderId || !canCloseChat) return;
+    showConfirm(
+      "Cerrar chat",
+      "¿Cerrar el chat de este pedido? Ambos lados quedarán en modo lectura.",
+      async () => {
+        try {
+          await updateOrder(orderId, { chatClosed: true });
+        } catch {
+          showAlert("Error", "No se pudo cerrar el chat.");
+        }
+      },
+      undefined,
+      { confirmLabel: "Cerrar" },
+    );
+  };
 
   const handleSend = async () => {
     const trimmed = text.trim();
@@ -103,6 +133,17 @@ export default function ChatScreen() {
           </Text>
         </View>
       </View>
+
+      {canCloseChat && (
+        <TouchableOpacity
+          onPress={handleCloseChat}
+          className="mx-4 mt-3 bg-error rounded-xl py-3 items-center active:opacity-70"
+        >
+          <Text className="text-body-bold text-white">
+            🔒 Cerrar chat
+          </Text>
+        </TouchableOpacity>
+      )}
 
       {/* Messages */}
       <FlatList

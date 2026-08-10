@@ -17,6 +17,7 @@ export default function OrderStepper({
           { key: "pending", label: "Pend." },
           { key: "preparing", label: "Prep." },
           { key: "ready", label: "Listo" },
+          { key: "on_the_way", label: "En camino" },
           { key: "delivered", label: "Entr." },
         ]
       : [
@@ -25,7 +26,7 @@ export default function OrderStepper({
           { key: "ready", label: "Listo" },
         ];
 
-  const stepOrder = ["pending", "preparing", "ready", "delivered"];
+  const stepOrder = ["pending", "preparing", "ready", "on_the_way", "delivered"];
   const currentIdx = stepOrder.indexOf(status);
 
   if (status === "cancelled") {
@@ -55,8 +56,11 @@ export default function OrderStepper({
     <View className="flex-row items-start mt-3">
       {steps.flatMap((step, i) => {
         const stepIdx = stepOrder.indexOf(step.key);
-        const isCompleted = currentIdx >= 0 && stepIdx < currentIdx;
-        const isCurrent = step.key === status;
+        const isTerminalDone = status === "delivered";
+        const isCompleted =
+          currentIdx >= 0 &&
+          (stepIdx < currentIdx || (isTerminalDone && step.key === status));
+        const isCurrent = step.key === status && !isTerminalDone;
         const isFuture = currentIdx >= 0 && stepIdx > currentIdx;
 
         const elements: React.ReactNode[] = [];

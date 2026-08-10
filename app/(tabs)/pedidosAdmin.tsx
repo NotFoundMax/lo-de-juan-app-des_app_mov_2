@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { router } from "expo-router";
 import {
-    Alert,
     FlatList,
-    Platform,
     RefreshControl,
     Text,
     TextInput,
@@ -28,6 +26,7 @@ import {
     updateOrder,
 } from "@/src/services/pedidos-rtdb";
 import { groupByRound, ROUND_STATUS } from "@/src/utils/mesa-items";
+import { showAlert, showConfirm } from "@/src/utils/errorHandler";
 
 type FilterStatus = "all" | Order["status"];
 
@@ -36,6 +35,7 @@ const FILTERS: { key: FilterStatus; label: string }[] = [
   { key: "pending", label: "Pendiente" },
   { key: "preparing", label: "Preparando" },
   { key: "ready", label: "Listo" },
+  { key: "on_the_way", label: "En camino" },
   { key: "delivered", label: "Entregado" },
 ];
 
@@ -48,6 +48,7 @@ const STATUS_ACTIONS: {
   pending: { next: "preparing", label: "Aceptar", color: "#1976d2" },
   preparing: { next: "ready", label: "Listo", color: "#43A047" },
   ready: { next: "delivered", label: "Entregar", color: "#9e9e9e" },
+  on_the_way: { next: "delivered", label: "Entregado a cliente", color: "#9e9e9e" },
 };
 
 // Acción según el estado y el modo de entrega
@@ -66,7 +67,7 @@ function getActionFor(order: Order): {
 
   if (order.deliveryMode === "delivery") {
     return {
-      next: "delivered",
+      next: "on_the_way",
       label: "ENTREGAR AL MOTORIZADO",
       color: "#9e9e9e",
     };
@@ -171,19 +172,18 @@ function AdminOrderCard({
         : STATUS_CONFIG[action.next].label;
     const doUpdate = () => onStatusChange(order.id, action.next);
 
-    if (Platform.OS === "web") {
-      if (window.confirm(`¿Cambiar estado a "${statusLabel}"?`)) doUpdate();
-    } else {
-      Alert.alert("Cambiar estado", `¿Cambiar estado a "${statusLabel}"?`, [
-        { text: "No", style: "cancel" },
-        { text: "Sí", onPress: doUpdate },
-      ]);
-    }
+    showConfirm(
+      "Cambiar estado",
+      `¿Cambiar estado a "${statusLabel}"?`,
+      doUpdate,
+      undefined,
+      { confirmLabel: "Sí" },
+    );
   };
 
   const miniSteps =
     order.deliveryMode === "delivery"
-      ? ["pending", "preparing", "ready", "delivered"]
+      ? ["pending", "preparing", "ready", "on_the_way", "delivered"]
       : ["pending", "preparing", "ready"];
 
   const sucursal =
@@ -216,7 +216,11 @@ function AdminOrderCard({
           : null;
 
   return (
-    <View className="mb-3 bg-white rounded-xl border border-border overflow-hidden">
+    <View
+      className={`mb-3 bg-white rounded-xl border border-border overflow-hidden ${
+        order.status === "delivered" ? "opacity-50" : ""
+      }`}
+    >
       {/* ─── Collapsed row (always visible) ─── */}
       <TouchableOpacity onPress={onToggle} className="active:opacity-80">
         <View className="px-4 py-3">
@@ -284,8 +288,38 @@ function AdminOrderCard({
               </Text>
             </View>
             <Text className="text-small text-text-muted">
-              {order.items.length} producto{order.items.length !== 1 ? "s" : ""}
+              {order.items.reduce((acc, i) => acc + (i.quantity || 0), 0)}{" "}
+              producto
+              {order.items.reduce((acc, i) => acc + (i.quantity || 0), 0) !== 1
+                ? "s"
+                : ""}
             </Text>
+            {order.deliveryMode === "delivery" &&
+              order.status !== "cancelled" &&
+              !order.chatClosed && (
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push({
+                      pathname: "/chat",
+                      params: {
+                        orderId: order.id,
+                        orderName: order.ticketNumber || order.id.slice(0, 8).toUpperCase(),
+                      },
+                    })
+                  }
+                  className="flex-row items-center px-2 py-0.5 rounded-full ml-auto"
+                  style={{
+                    backgroundColor: chatUnread > 0 ? "#fde8e8" : "#f3f4f6",
+                  }}
+                >
+                  <Text className="text-small mr-1">💬</Text>
+                  {chatUnread > 0 && (
+                    <Text className="text-small font-bold text-primary">
+                      {chatUnread}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
           </View>
         </View>
       </TouchableOpacity>
@@ -445,7 +479,10 @@ function useElapsed(
 
   useEffect(() => {
     const isFrozen =
-      status === "ready" || status === "delivered" || status === "cancelled";
+      status === "ready" ||
+      status === "on_the_way" ||
+      status === "delivered" ||
+      status === "cancelled";
 
     if (isFrozen && readyAt) {
       const diff = new Date(readyAt).getTime() - new Date(isoDate).getTime();
@@ -568,7 +605,12 @@ function ComandaCard({
   const ticketNum = order.ticketNumber || order.id.slice(0, 4).toUpperCase();
 
   return (
-    <View className="mb-4 bg-white overflow-hidden" style={{ elevation: 2 }}>
+    <View
+      className={`mb-4 bg-white overflow-hidden ${
+        order.status === "delivered" ? "opacity-50" : ""
+      }`}
+      style={{ elevation: 2 }}
+    >
       {/* Perforated top edge */}
       <View
         style={{
@@ -980,7 +1022,7 @@ export default function PedidosAdminScreen() {
         ...(newStatus === "ready" ? { readyAt: new Date().toISOString() } : {}),
       });
     } catch {
-      Alert.alert("Error", "No se pudo actualizar el estado.");
+      showAlert("Error", "No se pudo actualizar el estado.");
     }
   };
 
@@ -996,20 +1038,17 @@ export default function PedidosAdminScreen() {
         if (order) patch.paidAmount = order.total;
         await updateOrder(orderId, patch);
       } catch {
-        Alert.alert("Error", "No se pudo confirmar el pago.");
+        showAlert("Error", "No se pudo confirmar el pago.");
       }
     };
 
-    if (Platform.OS === "web") {
-      if (window.confirm("¿Confirmar el pago con Yape de este pedido?")) {
-        doConfirm();
-      }
-    } else {
-      Alert.alert("Confirmar pago", "¿Confirmar el pago con Yape?", [
-        { text: "No", style: "cancel" },
-        { text: "Sí, confirmar", onPress: doConfirm },
-      ]);
-    }
+    showConfirm(
+      "Confirmar pago",
+      "¿Confirmar el pago con Yape de este pedido?",
+      doConfirm,
+      undefined,
+      { confirmLabel: "Confirmar" },
+    );
   };
 
   // Rechaza la solicitud de pago Yape
@@ -1018,20 +1057,17 @@ export default function PedidosAdminScreen() {
       try {
         await updateOrder(orderId, { status: "cancelled" });
       } catch {
-        Alert.alert("Error", "No se pudo rechazar el pedido.");
+        showAlert("Error", "No se pudo rechazar el pedido.");
       }
     };
 
-    if (Platform.OS === "web") {
-      if (window.confirm("¿Rechazar este pago Yape?")) {
-        doReject();
-      }
-    } else {
-      Alert.alert("Rechazar pago", "¿Rechazar este pago Yape?", [
-        { text: "No", style: "cancel" },
-        { text: "Sí, rechazar", style: "destructive", onPress: doReject },
-      ]);
-    }
+    showConfirm(
+      "Rechazar pago",
+      "¿Rechazar este pago Yape?",
+      doReject,
+      undefined,
+      { confirmLabel: "Rechazar", destructive: true },
+    );
   };
 
   // Suscripción en tiempo real a pedidos
@@ -1041,8 +1077,20 @@ export default function PedidosAdminScreen() {
       if (isAdmin) {
         setOrders(data);
       } else {
-        const today = new Date().toISOString().slice(0, 10);
-        setOrders(data.filter((o) => o.createdAt?.startsWith(today)));
+        // Día actual en hora local (los createdAt están en ISO/UTC)
+        const now = new Date();
+        const startOfDay = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+        ).getTime();
+        const endOfDay = startOfDay + 86400000;
+        setOrders(
+          data.filter((o) => {
+            const t = new Date(o.createdAt ?? "").getTime();
+            return t >= startOfDay && t < endOfDay;
+          }),
+        );
       }
       setLoading(false);
       setRefreshing(false);
@@ -1077,6 +1125,7 @@ export default function PedidosAdminScreen() {
     pending: queueOrders.filter((o) => o.status === "pending").length,
     preparing: queueOrders.filter((o) => o.status === "preparing").length,
     ready: queueOrders.filter((o) => o.status === "ready").length,
+    on_the_way: queueOrders.filter((o) => o.status === "on_the_way").length,
     delivered: queueOrders.filter((o) => o.status === "delivered").length,
   };
 
