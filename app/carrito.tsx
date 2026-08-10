@@ -3,10 +3,10 @@ import { useCarrito } from "@/src/contexts/CarritoContext";
 import { useDelivery } from "@/src/contexts/DeliveryContext";
 import { sucursales } from "@/src/data/sucursales";
 import { PaymentMethod } from "@/src/services/pedidos-rtdb";
+import { showAlert } from "@/src/utils/errorHandler";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
     FlatList,
     Platform,
     Text,
@@ -50,7 +50,7 @@ export default function CartScreen() {
   const handlePagar = () => {
     if (items.length === 0) return;
     if (!paymentMethod) {
-      Alert.alert("Selecciona un método de pago");
+      showAlert("Selecciona un método de pago");
       return;
     }
     setShowDeliveryModal(true);
@@ -233,6 +233,14 @@ export default function CartScreen() {
                 S/.{grandTotal.toFixed(2)}
               </Text>
             </View>
+            <TouchableOpacity
+              onPress={() => router.navigate("/")}
+              className="py-3 rounded-xl items-center border border-primary mb-2 active:opacity-70"
+            >
+              <Text className="text-body-bold text-primary">
+                ← Seguir comprando
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={handlePagar}
               className="bg-primary py-4 rounded-xl items-center active:opacity-70"

@@ -90,11 +90,20 @@ export default function AdminScreen() {
         getOrders(),
       ]);
 
-      const today = new Date().toISOString().slice(0, 10);
+      // Día actual en hora local (los createdAt están en ISO/UTC)
+      const now = new Date();
+      const startOfDay = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+      ).getTime();
+      const endOfDay = startOfDay + 86400000;
       const ventasHoy = orders
-        .filter(
-          (o) => o.createdAt?.startsWith(today) && o.status !== "cancelled",
-        )
+        .filter((o) => {
+          if (o.status === "cancelled") return false;
+          const t = new Date(o.createdAt ?? "").getTime();
+          return t >= startOfDay && t < endOfDay;
+        })
         .reduce((sum, o) => sum + o.total, 0);
 
       setData({
