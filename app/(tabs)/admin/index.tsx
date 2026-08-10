@@ -98,13 +98,15 @@ export default function AdminScreen() {
         now.getDate(),
       ).getTime();
       const endOfDay = startOfDay + 86400000;
+      // Ingresos del día: lo cobrado hoy (paidAt). Fallback a createdAt para
+      // pedidos que se crean cobrados al momento (mostrador/delivery online).
       const ventasHoy = orders
         .filter((o) => {
           if (o.status === "cancelled") return false;
-          const t = new Date(o.createdAt ?? "").getTime();
+          const t = new Date(o.paidAt ?? o.createdAt ?? "").getTime();
           return t >= startOfDay && t < endOfDay;
         })
-        .reduce((sum, o) => sum + o.total, 0);
+        .reduce((sum, o) => sum + (o.paidAmount ?? o.total), 0);
 
       setData({
         totalProductos: productos.length,
